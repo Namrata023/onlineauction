@@ -1,67 +1,86 @@
-
-.container {
-    width: 50%;
-    margin: 125px auto;
+body {
+    font-family: Arial, sans-serif;
 }
-
-form{
-    background: rgba(220, 228, 242,0.4);
-    padding: 20px;
-    border-radius: 5px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-    color:antiquewhite;
-}
-
-label {
-    font-weight: bold;
-}
-
-input[type="text"],
-input[type="number"],
-textarea {
-    width: 100%;
+.title-bar {
+    background-color: #444;
+    color: white;
     padding: 10px;
-    border: 1px solid black;
-    border-radius: 5px;
-    box-sizing: border-box;
+    text-align: center;
+    font-size: 24px;
 }
 
-button {
-    padding: 10px 20px;
-    background:rgb(42, 158, 197);
-    color: #fff;
+/* Navigation Bar */
+.navbar {
+    overflow: hidden;
+    background-color: #333;
+}
+.navbar a {
+    float: left;
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 32px;
+    text-decoration: none;
+}
+.navbar a:hover {
+    background-color: #ddd;
+    color: black;
+}
+.navbar .login {
+    float: right;
+    background-color: #f39c12;
+    color: white;
+}
+.navbar .login:hover {
+    background-color: #e67e22;
+    color: white;
+}
+
+/* Search Box */
+.search-box {
+    text-align: center;
+    margin-top: 20px;
+}
+.search-box input {
+    padding: 10px;
+    width: 300px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.search-box button {
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #333;
+    color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     cursor: pointer;
 }
-
-button:hover {
-    background: #043d7a;
+.search-box button:hover {
+    background-color: #ddd;
+    color: black;
 }
-.note {
+
+/* Footer */
+.footer {
+    background-color: #333;
+    color: white;
     text-align: center;
-    color:antiquewhite;
-
+    padding: 20px;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+    left: 0;
 }
 
+.footer a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 14px;
+}
 
-body {
-    background-color: rgb(155, 13, 32);
-    background-image: url('');
-}
-h2{
-    color:antiquewhite;
-    text-align: center;
-    font-size: 40px;
-    font-family: 'Helvetica', sans-serif;
-}
-p{
-    color:antiquewhite;  
-}
-.logintext{
-    text-align: right;
-    color: rgb(108, 141, 184); 
+.footer a:hover {
+    text-decoration: underline;
 }
