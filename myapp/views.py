@@ -57,7 +57,7 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            return render(request, 'login_success.html', {'username': username})
+            return redirect('home')
         
         else:
             return render(request, 'login.html', {'error': 'Invalid credentials'})
