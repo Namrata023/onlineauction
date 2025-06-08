@@ -42,6 +42,7 @@
         <br>
         </header>
         <main>
+            {% block content %}
             <div class="card-container">
                 {% for i in items %}
                     <div class="card">
@@ -53,7 +54,8 @@
                         </div>
                     </div>
                 {% endfor %}
-            </div>            
+            </div> 
+            {% endblock %}           
         </main>
 
 
