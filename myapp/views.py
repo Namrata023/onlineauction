@@ -5,13 +5,26 @@ from django.conf import settings
 from .models import *
 from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm
 from django.contrib.auth import authenticate, login,logout
+from collections import namedtuple
 
 
 def simple_page_view(request):
     return render(request, 'myapp/simple_page.html')
 
 def home(request):
-    items = Item.objects.all()  
+
+    # Items for testing purposes
+
+    ItemMock = namedtuple('ItemMock', ['id', 'name', 'description', 'price'])
+
+    # Create temporary fake items
+    items = [
+        ItemMock(id=1, name='Test Item 1', description='This is item 1.', price=9.99),
+        ItemMock(id=2, name='Test Item 2', description='This is item 2.', price=19.99),
+        ItemMock(id=3, name='Test Item 3', description='This is item 3.', price=29.99),
+    ]
+
+     
     return render(request, 'base.html', {'items': items})
     
 def about(request):
