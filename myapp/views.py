@@ -42,11 +42,11 @@ def add_item(request):
             item = form.save(commit=False)
             item.owner = request.user
             item.save()
-            return render(request, 'item_success.html', {'item': item})
+            return redirect('home')  # Redirect to a success page or item detail page
     else:
         form = ItemForm()
     
-    return render(request, 'myapp/add_item.html')
+    return render(request, 'add_item.html', {'form': form})
 
 def login_view(request):
     if request.method == 'POST':
