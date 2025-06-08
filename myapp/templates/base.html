@@ -23,12 +23,18 @@
         <header>
         <h1 class="title-bar">Online Auction</h1>
         <div class="navbar">
-            <a href="#home">Home</a>
-            <a href="#contact">Contact Us</a>
-            <a href="#about">About</a>
-            <a href="#product">Product</a>
-            <a href="#add-item">Add-Item</a>
-            <a href="#login" class="login">Login/Sign Up</a>
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'contact' %}">Contact Us</a>
+            <a href="{% url 'about' %}">About</a>
+            {% for item in items %}
+            <a href="{% url 'product' item.id %}">Product: {{ item.name }}</a>
+        {% endfor %}
+            <a href="{% url 'add_item' %}">Add-Item</a>
+{% if user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link text-dark" href="{% url 'logout_view' %}">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link text-dark" href="{% url 'login_view' %}">Login</a></li>
+                    {% endif %}
         </div>
         <br>
         <div class="search-box">
