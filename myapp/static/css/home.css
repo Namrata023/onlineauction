@@ -62,6 +62,10 @@ body {
     color: black;
 }
 
+main {
+    padding-bottom: 70px;
+}
+
 /* Footer */
 .footer {
     background-color: #333;
