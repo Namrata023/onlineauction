@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
 
 
 class CustomUser(AbstractUser):
@@ -18,7 +19,7 @@ class Item(models.Model):
     image = models.ImageField(upload_to="images/", blank=True, null=True)
     is_sold = models.BooleanField(default=False)
     start_time = models.DateTimeField(default=timezone.now)
-    end_time = models.DateTimeField()
+    end_time = models.DateTimeField(default=timezone.now() + timedelta(days=15))
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
