@@ -13,16 +13,7 @@ def simple_page_view(request):
 
 def home(request):
 
-    # Items for testing purposes
-
-    ItemMock = namedtuple('ItemMock', ['id', 'name', 'description', 'price'])
-
-    # Create temporary fake items
-    items = [
-        ItemMock(id=1, name='Test Item 1', description='This is item 1.', price=9.99),
-        ItemMock(id=2, name='Test Item 2', description='This is item 2.', price=19.99),
-        ItemMock(id=3, name='Test Item 3', description='This is item 3.', price=29.99),
-    ]
+    items = Item.objects.all()
 
      
     return render(request, 'base.html', {'items': items})
