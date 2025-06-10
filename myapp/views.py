@@ -25,7 +25,7 @@ def contact(request):
     return render(request, 'myapp/contact.html')
 
 
-@login_required
+
 def add_item(request):
    
     if request.method == 'POST':
