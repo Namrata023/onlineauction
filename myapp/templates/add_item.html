@@ -3,7 +3,8 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2 class="mb-4">Add New Auction Item</h2>
+    
+    {% if user.is_authenticated %}
 
     {% if form.errors %}
         <div class="alert alert-danger">
