@@ -134,3 +134,4 @@ def delete_item(request, id):
         return redirect('home')
     else:
         return render(request, 'error.html', {'message': 'You are not authorized to delete this item.'})
+    
