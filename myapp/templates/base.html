@@ -49,10 +49,10 @@
             <div class="card-container">
                 {% for i in items %}
                     <div class="card">
-                        <img src="{% static 'images/placeholder.png' %}" alt="Item {{ i }}" class="card-image">
+                        <img src="{{ i.image.url }}" alt="Item {{ i }}" class="card-image">
                         <div class="card-content">
-                            <h3 class="card-title">Item {{ i }}</h3>
-                            <p class="card-price">Min Price: ${{ 1000 }}</p>
+                            <h3 class="card-title">Item Name: {{ i }}</h3>
+                            <p class="card-price">Min Price: ${{ i.minimum_price }}</p>
                             <a href="#" class="see-more-link">See More</a>
                         </div>
                     </div>
