@@ -53,7 +53,7 @@
                         <div class="card-content">
                             <h3 class="card-title">Item Name: {{ i }}</h3>
                             <p class="card-price">Min Price: ${{ i.minimum_price }}</p>
-                            <a href="{% url 'product.id' %}" class="see-more-link">See More</a>
+                            <a href="{% url 'product' i.id %}" class="see-more-link">See More</a>
                         </div>
                     </div>
                 {% endfor %}
