@@ -23,6 +23,12 @@
         {{ form.as_p }}
         <button type="submit" class="btn btn-success">Add Item</button>
     </form>
+    {% else %}
+    <div class="alert alert-info mt-4">
+        <p>You must be logged in to add an item.</p>
+        <a href="{% url 'login_view' %}" class="btn btn-primary">Login</a>
+    </div>
+    {% endif %}
 
     <br>
     <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
