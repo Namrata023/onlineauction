@@ -125,3 +125,12 @@ def submit_feedback(request):
     else:
         form = FeedbackForm()
     return render(request, 'feedback.html', {'form': form})
+
+@login_required
+def delete_item(request, id):
+    item = Item.objects.get(id=id)
+    if request.user == item.owner:
+        item.delete()
+        return redirect('home')
+    else:
+        return render(request, 'error.html', {'message': 'You are not authorized to delete this item.'})

@@ -25,7 +25,6 @@ class FeedbackForm(forms.ModelForm):
         fields = ['name', 'email', 'message']
 
 class UserCreationForm(BaseUserCreationForm):
-    is_author = forms.BooleanField(required=False, initial=False, label="Register as a Seller?")
     phone_number = forms.CharField(max_length=15, required=False)
 
     class Meta:
