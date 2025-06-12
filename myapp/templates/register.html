@@ -1,6 +1,6 @@
  {% extends "base.html" %}
 {% load static %}
-{% block title %}Login{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block content %}
 <h2>Register</h2>
@@ -10,7 +10,7 @@
 <form method="POST">
   {% csrf_token %}
   {{ form.as_p }}
-  <button type="submit">Login</button>
+  <button type="submit">Register</button>
 </form>
 
 {% if form.errors %}
