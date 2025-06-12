@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Contact Us</h2>
+    <p>If you have any questions, suggestions, or feedback, we'd love to hear from you!</p>
+    <ul class="list-unstyled">
+        <li><strong>Email:</strong> auction.online07@gmail.com</li>
+        <li><strong>Phone:</strong> 98000000</li>
+        <li><strong>Address:</strong> Phirke Pokhara-8</li>
+    </ul>
+    
+    
+    <div class="mt-5">
+        <h4>Send Us Feedback</h4>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ form.name.label_tag }}
+                {{ form.name }}
+            </div>
+            <div class="mb-3">
+                {{ form.email.label_tag }}
+                {{ form.email }}
+            </div>
+            <div class="mb-3">
+                {{ form.message.label_tag }}
+                {{ form.message }}
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Feedback</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

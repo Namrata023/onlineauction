@@ -12,6 +12,9 @@ urlpatterns = [
     path('register/', register, name='register'),
     path('logout_view/', logout_view, name='logout_view'),
     path('product/<int:id>/', product, name='product'),
-   
+    path('delete_item/<int:id>/', delete_item, name='delete_item'),
+    path('edit_item/<int:id>/', edit_item, name='edit_item'),
+    path('notify_outbid_user/<int:item_id>/', notify_outbid_user, name='notify_outbid_user'),
+    path('notify_auction_winner/<int:item_id>/', notify_auction_winner, name='notify_auction_winner'),
 
 ]

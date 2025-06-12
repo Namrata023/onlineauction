@@ -3,26 +3,74 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import *
-from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm
+from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, ItemImageFormSet
 from django.contrib.auth import authenticate, login,logout
 from collections import namedtuple
-
+from django.http import HttpResponseForbidden, HttpResponse
+from django.contrib import messages
+from django.db.models import Q
 
 def simple_page_view(request):
     return render(request, 'myapp/simple_page.html')
 
 def home(request):
+    query = request.GET.get('q') 
+    if query:
+        items = Item.objects.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query)
+        ).distinct()
+    else:
+        items = Item.objects.all()
+        query = ''
 
-    items = Item.objects.all()
+    no_results = query and not items.exists()
 
      
-    return render(request, 'base.html', {'items': items})
+    return render(request, 'base.html', {'items': items,'query': query,'no_results': no_results,})
     
 def about(request):
-    return render(request, 'myapp/about.html')
+    faqs = [
+        {
+            'question': 'What is Online Auction?',
+            'answer': 'Online Auction is a platform where users can list and bid on items in real-time.'
+        },
+        {
+            'question': 'How do I place a bid?',
+            'answer': 'You must be logged in. Then, go to the product page and enter your bid.'
+        },
+        {
+            'question': 'Can I delete my own listings?',
+            'answer': 'Yes, but only if you are the seller who listed the item.'
+        },
+        {
+            'question': 'Is bidding free?',
+            'answer': 'Yes, placing a bid is free. Only successful bids may involve payments.'
+        },
+    ]
+    return render(request, 'myapp/about.html', {'faqs': faqs})
 
 def contact(request):
-    return render(request, 'myapp/contact.html')
+    if request.method == 'POST':
+        form = FeedbackForm(request.POST)
+        if form.is_valid():
+            feedback = form.save()
+
+            # Send confirmation email to user
+            subject = "Thank you for your feedback"
+            message = (
+                f"Hi {feedback.name},\n\n"
+                "Thank you for your valuable feedback. We appreciate you taking the time to help us improve.\n\n"
+                "Best regards,\nOnline Auction Team"
+            )
+            recipient_list = [feedback.email]
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
+
+            messages.success(request, "feedback:Thank you for your feedback! A confirmation email has been sent.")
+            return redirect('contact')
+    else:
+        form = FeedbackForm()
+    return render(request, 'myapp/contact.html', {'form': form})
 
 
 
@@ -34,9 +82,21 @@ def add_item(request):
             item = form.save(commit=False)
             item.owner = request.user
             item.save()
+
+            
+        for img in request.FILES.getlist('images'):
+            ItemImage.objects.create(item=item, image=img)
+
+           
+            subject = 'Item Added Successfully'
+            message = f"Hi {request.user.username},\n\nYour item '{item.name}' has been added successfully to the auction platform."
+            recipient_list = [request.user.email]
+            
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
             return redirect('home') 
     else:
         form = ItemForm()
+       
     
     return render(request, 'add_item.html', {'form': form})
 
@@ -86,52 +146,100 @@ def product(request,id):
     bids = item.bid_set.order_by('-bid_price')
     if request.method == 'POST' and request.user.is_authenticated:
         form = BidForm(request.POST)
-        if form.is_valid():
+        if item.owner == request.user:
+            
+            form.add_error(None, "You cannot bid on your own item.")
+        elif item.end_time and item.end_time < timezone.now():
+            form.add_error(None, "Auction has ended. Bidding is closed.")
+        elif form.is_valid():
             bid = form.save(commit=False)
             highest_bid = bids.first()
             min_bid = item.minimum_price
+
             if highest_bid:
                 min_bid = max(min_bid, highest_bid.bid_price)
+
             if bid.bid_price > min_bid:
                 bid.item = item
                 bid.bidder = request.user
+                bid.bid_time = timezone.now()
                 bid.save()
+                messages.success(request, 'Your bid has been placed!')
                 return redirect('product', id=id)
             else:
-                form.add_error('bid_price', 'Your bid must be higher than current highest bid and minimum price.')
+                form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
     else:
         form = BidForm()
     return render(request, 'product.html', {'item': item, 'bids': bids, 'form': form})
-
 @login_required
-def add_product(request):
-    if request.method == 'POST':
-        form = ItemForm(request.POST, request.FILES)
-        if form.is_valid():
-            item = form.save(commit=False)
-            item.owner = request.user
-            item.save()
-            return redirect('item_detail', item_id=item.id)  
-    else:
-        form = ItemForm()
-    return render(request, 'add_product.html', {'form': form})
+def edit_item(request, id):
+    item = Item.objects.get(id=id, owner=request.user)
 
-def submit_feedback(request):
+    if item.owner != request.user:
+        return redirect('home')
+
     if request.method == 'POST':
-        form = FeedbackForm(request.POST)
+        form = ItemForm(request.POST, request.FILES, instance=item)
         if form.is_valid():
             form.save()
-            return render(request, 'feedback_thanks.html')
-    else:
-        form = FeedbackForm()
-    return render(request, 'feedback.html', {'form': form})
 
-@login_required
+            images = request.FILES.getlist('images')
+            if images:
+                # Delete old images first (if you want replacement)
+                item.images.all().delete()
+
+                # Create new image objects for uploaded files
+                for image in images:
+                    ItemImage.objects.create(item=item, image=image)
+            subject = f"Your product '{item.name}' has been updated"
+            message = f"Hello {request.user.username},\n\nYour product '{item.name}' has been successfully updated on Online auction.\n\nThank you for keeping your listings up to date!"
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [request.user.email]
+
+            send_mail(subject, message, from_email, recipient_list)
+            return redirect('product', id=id)  # redirect to product detail page
+    else:
+        form = ItemForm(instance=item)
+
+    return render(request, 'edit_item.html', {'form': form, 'item': item})
+
+# @login_required
+# def add_product(request):
+#     if not request.user.is_seller:
+#         return HttpResponseForbidden("You are not authorized to add products. Only sellers can.")
+    
+#     if request.method == 'POST':
+#         form = ItemForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             item = form.save(commit=False)
+#             item.owner = request.user
+#             item.save()
+#             return redirect('product', id=item.id)  
+#     else:
+#         form = ItemForm()
+#     return render(request, 'add_item.html', {'form': form})
+
+
+login_required
 def delete_item(request, id):
     item = Item.objects.get(id=id)
-    if request.user == item.owner:
+    if request.user != item.owner:
+        return HttpResponseForbidden("You are not allowed to delete this item.")
+    if request.method == 'POST':
         item.delete()
+        messages.success(request, "Item deleted successfully.")
         return redirect('home')
-    else:
-        return render(request, 'error.html', {'message': 'You are not authorized to delete this item.'})
-    
+
+    return render(request, 'delete_item.html', {'item': item})
+
+def notify_outbid_user(previous_highest_bid):
+    user = previous_highest_bid.user
+    subject = "You've been outbid!"
+    message = f"Hello {user.username},\n\nYou have been outbid on '{previous_highest_bid.item.name}'. Visit the auction to place a higher bid!"
+    send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+def notify_auction_winner(item):
+    winning_bid = item.bids.order_by('-amount').first()
+    if winning_bid:
+        subject = "You won the auction!"
+        message = f"Congratulations {winning_bid.user.username}!\n\nYou won the auction for '{item.name}' with a bid of ${winning_bid.amount}."
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.user.email])

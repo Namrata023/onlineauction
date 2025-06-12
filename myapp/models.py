@@ -16,7 +16,7 @@ class Item(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=100)
     minimum_price = models.FloatField()
-    image = models.ImageField(upload_to="images/", blank=True, null=True)
+    # image = models.ImageField(upload_to="images/", blank=True, null=True)
     is_sold = models.BooleanField(default=False)
     start_time = models.DateTimeField(default=timezone.now)
     end_time = models.DateTimeField(default=timezone.now() + timedelta(days=15))
@@ -24,6 +24,12 @@ class Item(models.Model):
 
     def __str__(self):
         return self.name
+class ItemImage(models.Model):
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='images/')
+    
+    def __str__(self):
+        return f"Image for {self.item.name}"
 
  
 class Bid(models.Model):
@@ -39,7 +45,7 @@ class Feedback(models.Model):
     name = models.CharField(max_length=100)
     message = models.CharField(max_length=1000)
     email = models.CharField(max_length=100)
-
+    
     def __str__(self):
         return f"Feedback from {self.name}"
 

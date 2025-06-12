@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     
     
     'crispy_forms',
-    'crispy_bootstrap5',  
+    'crispy_bootstrap5',
+     
 
 ]
 
@@ -77,6 +78,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'onlineauction.wsgi.application'
+ASGI_APPLICATION = "onlineauction.asgi.application"
 
 
 # Database
