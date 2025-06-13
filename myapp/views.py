@@ -73,6 +73,13 @@ def contact(request):
     return render(request, 'myapp/contact.html', {'form': form})
 
 
+def privacy_policy(request):
+    return render(request, 'privacy_policy.html')
+
+def terms_of_service(request):
+    return render(request, 'terms.html')
+
+
 
 def add_item(request):
    
@@ -243,3 +250,13 @@ def notify_auction_winner(item):
         subject = "You won the auction!"
         message = f"Congratulations {winning_bid.user.username}!\n\nYou won the auction for '{item.name}' with a bid of ${winning_bid.amount}."
         send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.user.email])
+from django.http import JsonResponse
+def get_latest_bid(request, id):
+    latest_bid = Bid.objects.filter(item_id=id).order_by('-bid_price').first()
+    if latest_bid:
+        return JsonResponse({
+            'amount': float(latest_bid.bid_price),
+            'bidder': latest_bid.bidder.username
+        })
+    else:
+        return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})

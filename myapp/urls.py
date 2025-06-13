@@ -16,5 +16,8 @@ urlpatterns = [
     path('edit_item/<int:id>/', edit_item, name='edit_item'),
     path('notify_outbid_user/<int:item_id>/', notify_outbid_user, name='notify_outbid_user'),
     path('notify_auction_winner/<int:item_id>/', notify_auction_winner, name='notify_auction_winner'),
+    path('privacy_policy/', privacy_policy, name='privacy_policy'),
+    path('terms_of_service/', terms_of_service, name='terms_of_service'),
+    path('get-latest-bid/<int:id>/', get_latest_bid, name='get_latest_bid'),
 
 ]

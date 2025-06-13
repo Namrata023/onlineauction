@@ -35,6 +35,8 @@
             <h2>{{ item.name }}</h2>
             <p><strong>Owner:</strong> {{ item.owner.username }}</p>
             <p><strong>Minimum Price:</strong> ${{ item.minimum_price }}</p>
+            <p><strong>Current Highest Bid:</strong> <span id="latest-bid">Loading...</span></p>
+
             <p><strong>Description:</strong> {{ item.description }}</p>
 
             {% if item.end_time %}
@@ -95,4 +97,21 @@
         </div>
     </div>
 </div>
+<script>
+  function fetchLatestBid() {
+    fetch("/get-latest-bid/{{ item.id }}/")
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("latest-bid").textContent = "Rs. " + data.amount + " by " + data.bidder;
+      })
+      .catch(error => {
+        console.error('Error fetching bid:', error);
+      });
+  }
+
+  
+  setInterval(fetchLatestBid, 5000);
+  fetchLatestBid(); // Initial call
+</script>
+
 {% endblock %}
