@@ -8,7 +8,7 @@ from datetime import timedelta
 class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
-    idetification_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    identification_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
     identification_image = models.ImageField(upload_to='identification_images/', blank=True, null=True)
     is_seller = models.BooleanField(default=False)
     def __str__(self):
