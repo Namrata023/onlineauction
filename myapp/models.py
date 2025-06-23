@@ -7,14 +7,19 @@ from datetime import timedelta
 
 class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+    idetification_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    identification_image = models.ImageField(upload_to='identification_images/', blank=True, null=True)
     is_seller = models.BooleanField(default=False)
     def __str__(self):
         return self.username
 
-class Item(models.Model):
+class Item(models.Model): 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    category = models.CharField(max_length=100)
     description = models.CharField(max_length=100)
+    tags = models.CharField(max_length=255, blank=True, null=True)
     minimum_price = models.FloatField()
     # image = models.ImageField(upload_to="images/", blank=True, null=True)
     is_sold = models.BooleanField(default=False)

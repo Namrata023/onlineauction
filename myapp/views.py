@@ -9,6 +9,7 @@ from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from django.db.models import Q
+from .utils import get_similar_items, get_user_based_recommendations
 
 def simple_page_view(request):
     return render(request, 'myapp/simple_page.html')
@@ -192,7 +193,7 @@ def edit_item(request, id):
 
             images = request.FILES.getlist('images')
             if images:
-                # Delete old images first (if you want replacement)
+                
                 item.images.all().delete()
 
                 # Create new image objects for uploaded files
@@ -210,22 +211,23 @@ def edit_item(request, id):
 
     return render(request, 'edit_item.html', {'form': form, 'item': item})
 
-# @login_required
-# def add_product(request):
-#     if not request.user.is_seller:
-#         return HttpResponseForbidden("You are not authorized to add products. Only sellers can.")
-    
-#     if request.method == 'POST':
-#         form = ItemForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             item = form.save(commit=False)
-#             item.owner = request.user
-#             item.save()
-#             return redirect('product', id=item.id)  
-#     else:
-#         form = ItemForm()
-#     return render(request, 'add_item.html', {'form': form})
 
+from django.shortcuts import get_object_or_404
+def item_detail(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    all_items = Item.objects.exclude(id=item_id)
+
+    content_based = get_similar_items(item, all_items)
+
+    user_based = []
+    if request.user.is_authenticated:
+        user_based = get_user_based_recommendations(request.user)
+
+    return render(request, 'item_detail.html', {
+        'item': item,
+        'content_based': content_based,
+        'user_based': user_based
+    })
 
 login_required
 def delete_item(request, id):
@@ -250,6 +252,8 @@ def notify_auction_winner(item):
         subject = "You won the auction!"
         message = f"Congratulations {winning_bid.user.username}!\n\nYou won the auction for '{item.name}' with a bid of ${winning_bid.amount}."
         send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.user.email])
+
+
 from django.http import JsonResponse
 def get_latest_bid(request, id):
     latest_bid = Bid.objects.filter(item_id=id).order_by('-bid_price').first()

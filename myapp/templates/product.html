@@ -1,4 +1,165 @@
+
 {% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <!-- Left: Item Image Carousel -->
+        <div class="col-md-6">
+            {% if item.images.count > 0 %}
+                <div id="item-images-carousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for image in item.images.all %}
+                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                <img src="{{ image.image.url }}" class="d-block w-100 rounded" alt="{{ item.name }}">
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if item.images.count > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#item-images-carousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#item-images-carousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    {% endif %}
+                </div>
+            {% else %}
+                <img src="{% static 'myapp/images/default.jpg' %}" class="img-fluid rounded" alt="No Image Available">
+            {% endif %}
+        </div>
+
+        <!-- Right: Item Info and Bidding -->
+        <div class="col-md-6">
+            <h2>{{ item.name }}</h2>
+            <p><strong>Owner:</strong> {{ item.owner.username }}</p>
+            <p><strong>Minimum Price:</strong> Rs. {{ item.minimum_price }}</p>
+            <p><strong>Current Highest Bid:</strong> <span id="latest-bid">Loading...</span></p>
+            <p><strong>Description:</strong> {{ item.description }}</p>
+            <p><strong>Tags:</strong> {{ item.tags }}</p>
+
+            {% if item.end_time %}
+                <p><strong>Auction Ends:</strong> {{ item.end_time }}</p>
+            {% endif %}
+
+            <!-- Bidding Form -->
+            {% if user.is_authenticated %}
+                {% if item.end_time and item.end_time < now %}
+                    <div class="alert alert-warning mt-2">This auction has ended. Bidding is closed.</div>
+                {% elif user == item.owner %}
+                    <div class="alert alert-info mt-2">You cannot bid on your own item.</div>
+                {% else %}
+                    <h4 class="mt-4">Place Your Bid</h4>
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {{ form.bid_price.label_tag }} {{ form.bid_price }}
+                        {% if form.bid_price.errors %}
+                            <div class="text-danger">{{ form.bid_price.errors }}</div>
+                        {% endif %}
+                        {% if form.non_field_errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-success mt-2">Bid</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <p><a href="{% url 'login_view' %}">Login</a> to place a bid.</p>
+            {% endif %}
+
+            <!-- Bids -->
+            <h4 class="mt-4">Bids</h4>
+            {% if bids %}
+                <ul class="list-group">
+                    {% for bid in bids %}
+                        <li class="list-group-item">
+                            <strong>{{ bid.bidder.username }}</strong> bid Rs.{{ bid.bid_price }} on {{ bid.bid_time|date:"Y-m-d H:i" }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No bids yet. Be the first to bid!</p>
+            {% endif %}
+
+            <!-- Item Actions -->
+            <a href="{% url 'home' %}" class="btn btn-primary mt-3">Back to Home</a>
+            {% if user.is_authenticated and user == item.owner %}
+                <a href="{% url 'edit_item' item.id %}" class="btn btn-warning mt-3 ms-2">Edit Item</a>
+                <a href="{% url 'delete_item' item.id %}" class="btn btn-danger mt-3 ms-2">Delete Item</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 🧠 Recommended Section -->
+    <div class="mt-5">
+        {% if user_based %}
+            <h3>Recommended Based on Your Bids</h3>
+            <div class="row">
+                {% for rec in user_based %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            {% if rec.images.first %}
+                                <img src="{{ rec.images.first.image.url }}" class="card-img-top" alt="{{ rec.name }}">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ rec.name }}</h5>
+                                <p class="card-text">Rs. {{ rec.minimum_price }}</p>
+                                <a href="{% url 'item_detail' rec.id %}" class="btn btn-outline-primary btn-sm">View</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if content_based %}
+            <h3 class="mt-4">Similar Items</h3>
+            <div class="row">
+                {% for rec in content_based %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100 shadow-sm">
+                            {% if rec.images.first %}
+                                <img src="{{ rec.images.first.image.url }}" class="card-img-top" alt="{{ rec.name }}">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ rec.name }}</h5>
+                                <p class="card-text">Rs. {{ rec.minimum_price }}</p>
+                                <a href="{% url 'item_detail' rec.id %}" class="btn btn-outline-secondary btn-sm">View</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 🔁 Real-time Bid Update Script -->
+<script>
+  function fetchLatestBid() {
+    fetch("/get-latest-bid/{{ item.id }}/")
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById("latest-bid").textContent = "Rs. " + data.amount + " by " + data.bidder;
+      })
+      .catch(error => {
+        console.error('Error fetching bid:', error);
+      });
+  }
+
+  setInterval(fetchLatestBid, 5000);
+  fetchLatestBid(); // Initial load
+</script>
+
+{% endblock %}
+
+{% comment %} {% extends "base.html" %}
 {% load static %}
 
 {% block content %}
@@ -114,4 +275,4 @@
   fetchLatestBid(); // Initial call
 </script>
 
-{% endblock %}
+{% endblock %} {% endcomment %}

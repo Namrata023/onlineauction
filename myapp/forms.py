@@ -35,7 +35,7 @@ class FeedbackForm(forms.ModelForm):
 class UserCreationForm(BaseUserCreationForm):
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'is_seller', 'phone_number', 'password1', 'password2']
+        fields = ['username', 'email', 'is_seller', 'phone_number', 'identification_number', 'identification_image', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
