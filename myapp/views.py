@@ -9,6 +9,7 @@ from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from django.db.models import Q
+from django.utils import timezone
 from .utils import get_similar_items, get_user_based_recommendations
 
 def simple_page_view(request):
@@ -152,12 +153,22 @@ def logout_view(request):
 def product(request,id):
     item = Item.objects.get(id=id)
     bids = item.bid_set.order_by('-bid_price')
+    
+    # Check if auction has expired
+    auction_expired = item.end_time and item.end_time < timezone.now()
+    winner = None
+    is_winner = False
+    
+    if auction_expired and bids.exists():
+        winner = bids.first().bidder
+        is_winner = request.user.is_authenticated and request.user == winner
+    
     if request.method == 'POST' and request.user.is_authenticated:
         form = BidForm(request.POST)
         if item.owner == request.user:
             
             form.add_error(None, "You cannot bid on your own item.")
-        elif item.end_time and item.end_time < timezone.now():
+        elif auction_expired:
             form.add_error(None, "Auction has ended. Bidding is closed.")
         elif form.is_valid():
             bid = form.save(commit=False)
@@ -178,7 +189,15 @@ def product(request,id):
                 form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
     else:
         form = BidForm()
-    return render(request, 'product.html', {'item': item, 'bids': bids, 'form': form})
+    return render(request, 'product.html', {
+        'item': item, 
+        'bids': bids, 
+        'form': form,
+        'auction_expired': auction_expired,
+        'winner': winner,
+        'is_winner': is_winner,
+        'now': timezone.now()
+    })
 @login_required
 def edit_item(request, id):
     item = Item.objects.get(id=id, owner=request.user)

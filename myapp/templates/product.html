@@ -43,12 +43,27 @@
 
             {% if item.end_time %}
                 <p><strong>Auction Ends:</strong> {{ item.end_time }}</p>
-            {% endif %}
-
-            <!-- Bidding Form -->
+            {% endif %}            <!-- Bidding Form -->
             {% if user.is_authenticated %}
-                {% if item.end_time and item.end_time < now %}
+                {% if auction_expired %}
                     <div class="alert alert-warning mt-2">This auction has ended. Bidding is closed.</div>
+                    {% if winner %}
+                        <div class="alert alert-success mt-2">
+                            <strong>Winner:</strong> {{ winner.username }}
+                            {% if winner.username == bids.first.bidder.username %}
+                                with a bid of Rs. {{ bids.first.bid_price }}
+                            {% endif %}
+                        </div>
+                        {% if is_winner %}
+                            <div class="alert alert-info mt-2">
+                                <strong>Congratulations! You won this auction!</strong>
+                                <br>
+                                <a href="#" class="btn btn-primary mt-2">Proceed to Payment</a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info mt-2">No bids were placed on this item.</div>
+                    {% endif %}
                 {% elif user == item.owner %}
                     <div class="alert alert-info mt-2">You cannot bid on your own item.</div>
                 {% else %}
