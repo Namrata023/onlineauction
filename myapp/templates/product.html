@@ -53,12 +53,11 @@
                             {% if winner.username == bids.first.bidder.username %}
                                 with a bid of Rs. {{ bids.first.bid_price }}
                             {% endif %}
-                        </div>
-                        {% if is_winner %}
+                        </div>                        {% if is_winner %}
                             <div class="alert alert-info mt-2">
                                 <strong>Congratulations! You won this auction!</strong>
                                 <br>
-                                <a href="#" class="btn btn-primary mt-2">Proceed to Payment</a>
+                                <a href="{% url 'initiate_payment' item.id %}" class="btn btn-primary mt-2">Proceed to Payment</a>
                             </div>
                         {% endif %}
                     {% else %}

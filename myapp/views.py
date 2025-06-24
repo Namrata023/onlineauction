@@ -281,5 +281,121 @@ def get_latest_bid(request, id):
             'amount': float(latest_bid.bid_price),
             'bidder': latest_bid.bidder.username
         })
-    else:
-        return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})
+    else:        return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})
+
+# Khalti Payment Views
+import requests
+
+@login_required
+def initiate_payment(request, item_id):
+    """Initiate payment with Khalti"""
+    item = get_object_or_404(Item, id=item_id)
+    bids = item.bid_set.order_by('-bid_price')
+    
+    # Check if user is the winner
+    if not (bids.exists() and bids.first().bidder == request.user):
+        messages.error(request, "You are not authorized to make payment for this item.")
+        return redirect('product', id=item_id)
+    
+    # Check if auction has expired
+    if not (item.end_time and item.end_time < timezone.now()):
+        messages.error(request, "Auction is still active. Payment not available yet.")
+        return redirect('product', id=item_id)
+    
+    winning_bid = bids.first()
+    amount_in_paisa = int(winning_bid.bid_price * 100)  # Convert to paisa
+    
+    payload = {
+        "return_url": request.build_absolute_uri(f"/payment-callback/{item_id}/"),
+        "website_url": request.build_absolute_uri("/"),
+        "amount": amount_in_paisa,
+        "purchase_order_id": f"auction_{item_id}_{request.user.id}_{timezone.now().strftime('%Y%m%d%H%M%S')}",
+        "purchase_order_name": item.name,
+        "customer_info": {
+            "name": request.user.get_full_name() or request.user.username,
+            "email": request.user.email,
+            "phone": getattr(request.user, 'phone_number', '9800000000')
+        },
+        "product_details": [
+            {
+                "identity": str(item_id),
+                "name": item.name,
+                "total_price": amount_in_paisa,
+                "quantity": 1,
+                "unit_price": amount_in_paisa
+            }
+        ]
+    }
+    
+    headers = {
+        'Authorization': settings.KHALTI_SECRET_KEY,
+        'Content-Type': 'application/json',
+    }
+    
+    try:
+        response = requests.post(
+            f"{settings.KHALTI_BASE_URL}epayment/initiate/",
+            json=payload,
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Store payment info
+            Payment.objects.create(
+                user=request.user,
+                item=item,
+                amount=winning_bid.bid_price,
+                payment_status="Initiated"
+            )
+            return redirect(data['payment_url'])
+        else:
+            messages.error(request, "Payment initiation failed. Please try again.")
+            return redirect('product', id=item_id)
+            
+    except Exception as e:
+        messages.error(request, "Payment service unavailable. Please try again later.")
+        return redirect('product', id=item_id)
+
+def payment_callback(request, item_id):
+    """Handle payment callback from Khalti"""
+    item = get_object_or_404(Item, id=item_id)
+    
+    pidx = request.GET.get('pidx')
+    status = request.GET.get('status')
+    transaction_id = request.GET.get('transaction_id')
+    
+    if status == 'Completed' and pidx:
+        # Verify payment with Khalti
+        headers = {
+            'Authorization': settings.KHALTI_SECRET_KEY,
+            'Content-Type': 'application/json',
+        }
+        
+        try:
+            response = requests.post(
+                f"{settings.KHALTI_BASE_URL}epayment/lookup/",
+                json={"pidx": pidx},
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'Completed':
+                    # Update payment status
+                    payment = Payment.objects.filter(item=item, user=request.user).last()
+                    if payment:
+                        payment.payment_status = "Completed"
+                        payment.save()
+                    
+                    # Mark item as sold
+                    item.is_sold = True
+                    item.save()
+                    
+                    messages.success(request, "Payment successful! You have successfully purchased this item.")
+                    return redirect('product', id=item_id)
+        except:
+            pass
+    
+    messages.error(request, "Payment failed or was cancelled.")
+    return redirect('product', id=item_id)

@@ -19,5 +19,7 @@ urlpatterns = [
     path('privacy_policy/', privacy_policy, name='privacy_policy'),
     path('terms_of_service/', terms_of_service, name='terms_of_service'),
     path('get-latest-bid/<int:id>/', get_latest_bid, name='get_latest_bid'),
+    path('initiate-payment/<int:item_id>/', initiate_payment, name='initiate_payment'),
+    path('payment-callback/<int:item_id>/', payment_callback, name='payment_callback'),
 
 ]
