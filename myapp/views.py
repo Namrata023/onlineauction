@@ -158,10 +158,15 @@ def product(request,id):
     auction_expired = item.end_time and item.end_time < timezone.now()
     winner = None
     is_winner = False
+    payment = None
     
     if auction_expired and bids.exists():
         winner = bids.first().bidder
         is_winner = request.user.is_authenticated and request.user == winner
+        
+        # Check for existing payment
+        if is_winner:
+            payment = Payment.objects.filter(item=item, user=request.user, payment_status="Completed").first()
     
     if request.method == 'POST' and request.user.is_authenticated:
         form = BidForm(request.POST)
@@ -196,6 +201,7 @@ def product(request,id):
         'auction_expired': auction_expired,
         'winner': winner,
         'is_winner': is_winner,
+        'payment': payment,
         'now': timezone.now()
     })
 @login_required
@@ -302,6 +308,12 @@ def initiate_payment(request, item_id):
         messages.error(request, "Auction is still active. Payment not available yet.")
         return redirect('product', id=item_id)
     
+    # Check if payment already completed
+    existing_payment = Payment.objects.filter(item=item, user=request.user, payment_status="Completed").first()
+    if existing_payment:
+        messages.info(request, "Payment already completed for this item.")
+        return redirect('product', id=item_id)
+    
     winning_bid = bids.first()
     amount_in_paisa = int(winning_bid.bid_price * 100)  # Convert to paisa
     
@@ -387,6 +399,14 @@ def payment_callback(request, item_id):
                     if payment:
                         payment.payment_status = "Completed"
                         payment.save()
+                    else:
+                        # Create payment record if not exists
+                        Payment.objects.create(
+                            user=request.user,
+                            item=item,
+                            amount=float(request.GET.get('amount', 0)) / 100,  # Convert from paisa
+                            payment_status="Completed"
+                        )
                     
                     # Mark item as sold
                     item.is_sold = True
