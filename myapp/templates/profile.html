@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Profile - {{ profile.username }}{% endblock %}
+
+{% block content %}
+{% load static %}
+
+<div class="container">
+    <div class="profile-card text-center">
+        {% if profile.profile_picture %}
+    <img src="{{ profile.profile_picture.url }}" class="profile-image mb-3" alt="Profile Picture">
+{% else %}
+    <img src="{% static 'default-user.png' %}" class="profile-image mb-3" alt="Default Profile Picture">
+{% endif %}
+
+        <h4>{{ profile.username }}</h4>
+        <p class="text-muted">{{ profile.email }}</p>
+        <p><strong>Phone:</strong> {{ profile.phone_number }}</p>
+        <p><strong>Seller:</strong> {% if user.is_seller %}Yes{% else %}No{% endif %}</p>
+        <hr>
+        <p><strong>Full Name:</strong> {{ profile.first_name }} {{ profile.last_name }}</p>
+        <p><strong>Address:</strong> {{ profile.address }}</p>
+        <p><strong>Date of Birth:</strong> {{ profile.date_of_birth }}</p>
+
+        <p><strong>Identification Number:</strong> {{ profile.identification_number }}</p>
+        {% if profile.identification_image %}
+            <p><strong>ID Image:</strong><br><img src="{{ profile.identification_image.url }}" alt="ID" style="max-width: 300px;"></p>
+        {% endif %}
+        <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary mt-3">Edit Profile</a>
+    </div>
+    <div class="card mt-4 shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h4 class="mb-3">Your Bids</h4>
+                      {% if bids %}
+                        <ul class="list-group">
+                            {% for bid in bids %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ bid.item.name }} 
+                                    <span class="badge bg-info text-dark">Your Bid: ${{ bid.bid_price }}</span>
+                                   
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">You haven’t placed any bids yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            
+            <div class="card mt-4 shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h5 class="mb-3">Support & Legal</h5>
+                    <div class="row row-cols-2 row-cols-md-3 g-2">
+                        <div><a href="/contact/" class="text-decoration-none text-primary">Contact Us</a></div>
+                        <div><a href="/feedback/" class="text-decoration-none text-primary">Feedback</a></div>
+                        <div><a href="/privacy-policy/" class="text-decoration-none text-primary">Privacy Policy</a></div>
+                        <div><a href="/terms/" class="text-decoration-none text-primary">Terms & Conditions</a></div>
+                        <div><a href="/about/" class="text-decoration-none text-primary">About OnlineAuction</a></div>
+                        <div><a href="/about-website/" class="text-decoration-none text-primary">About Website</a></div>
+                    </div>
+                </div>
+            </div>
+</div>
+
+{% endblock %}

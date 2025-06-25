@@ -81,8 +81,10 @@ def terms_of_service(request):
     return render(request, 'terms.html')
 
 
-
+@login_required(login_url='login_view')
 def add_item(request):
+    if not request.user.is_seller:
+        return HttpResponseForbidden("Only sellers can add items.")
    
     if request.method == 'POST':
         form = ItemForm(request.POST, request.FILES)
@@ -205,7 +207,7 @@ def edit_item(request, id):
             recipient_list = [request.user.email]
 
             send_mail(subject, message, from_email, recipient_list)
-            return redirect('product', id=id)  # redirect to product detail page
+            return redirect('product', id=id)  
     else:
         form = ItemForm(instance=item)
 
@@ -246,6 +248,7 @@ def notify_outbid_user(previous_highest_bid):
     subject = "You've been outbid!"
     message = f"Hello {user.username},\n\nYou have been outbid on '{previous_highest_bid.item.name}'. Visit the auction to place a higher bid!"
     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+
 def notify_auction_winner(item):
     winning_bid = item.bids.order_by('-amount').first()
     if winning_bid:
@@ -264,3 +267,30 @@ def get_latest_bid(request, id):
         })
     else:
         return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})
+
+
+@login_required(login_url='login_view')
+def profile_view(request):
+    profile=request.user
+    bids = Bid.objects.filter(bidder=profile).select_related('item')
+    return render(request, 'profile.html', {'user': request.user, 'profile': profile, 'bids':bids})
+@login_required
+def delete_profile(request):
+    if request.method == 'POST':
+        request.user.delete()
+        messages.success(request, "Profile deleted successfully.")
+        return redirect('home')
+    return render(request, 'delete_profile.html', {'user': request.user})
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully.")
+            return redirect('profile_view')
+    else:
+        form = UserCreationForm(instance=request.user)
+
+    return render(request, 'edit_profile.html', {'form': form, 'user': request.user})

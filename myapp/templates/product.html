@@ -96,7 +96,7 @@
         </div>
     </div>
 
-    <!-- 🧠 Recommended Section -->
+   
     <div class="mt-5">
         {% if user_based %}
             <h3>Recommended Based on Your Bids</h3>
@@ -140,7 +140,7 @@
     </div>
 </div>
 
-<!-- 🔁 Real-time Bid Update Script -->
+
 <script>
   function fetchLatestBid() {
     fetch("/get-latest-bid/{{ item.id }}/")

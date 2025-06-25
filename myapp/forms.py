@@ -35,12 +35,12 @@ class FeedbackForm(forms.ModelForm):
 class UserCreationForm(BaseUserCreationForm):
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'is_seller', 'phone_number', 'identification_number', 'identification_image', 'password1', 'password2']
+        fields = ['username', 'email', 'is_seller', 'phone_number', 'profile_picture', 'identification_number', 'identification_image', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['phone_number'].required = True
         self.fields['phone_number'].widget.attrs.update({
-            'placeholder': 'e.g., +1234567890',
+            'placeholder': 'e.g., 98..',
             'type': 'tel',
         })

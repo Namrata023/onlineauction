@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load crispy_forms_tags %}
 {% block content %}
 <div class="container mt-5">
     <h2>Contact Us</h2>
@@ -21,7 +21,8 @@
 
         <form method="post">
             {% csrf_token %}
-            <div class="mb-3">
+        {{ form|crispy }}
+            {% comment %} <div class="mb-3">
                 {{ form.name.label_tag }}
                 {{ form.name }}
             </div>
@@ -32,7 +33,7 @@
             <div class="mb-3">
                 {{ form.message.label_tag }}
                 {{ form.message }}
-            </div>
+            </div> {% endcomment %}
             <button type="submit" class="btn btn-primary">Submit Feedback</button>
         </form>
     </div>
