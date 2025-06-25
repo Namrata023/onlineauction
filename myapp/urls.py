@@ -19,5 +19,8 @@ urlpatterns = [
     path('privacy_policy/', privacy_policy, name='privacy_policy'),
     path('terms_of_service/', terms_of_service, name='terms_of_service'),
     path('get-latest-bid/<int:id>/', get_latest_bid, name='get_latest_bid'),
+    path('profile/', profile_view, name='profile'),
+    path('edit_profile/', edit_profile, name='edit_profile'),
+    path('delete_profile/', delete_profile, name='delete_profile'),
    
 ]
