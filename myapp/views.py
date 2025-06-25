@@ -9,6 +9,7 @@ from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from django.db.models import Q
+from django.utils import timezone
 from .utils import get_similar_items, get_user_based_recommendations
 
 def simple_page_view(request):
@@ -154,12 +155,22 @@ def logout_view(request):
 def product(request,id):
     item = Item.objects.get(id=id)
     bids = item.bid_set.order_by('-bid_price')
+    
+    # Check if auction has expired
+    auction_expired = item.end_time and item.end_time < timezone.now()
+    winner = None
+    is_winner = False
+    
+    if auction_expired and bids.exists():
+        winner = bids.first().bidder
+        is_winner = request.user.is_authenticated and request.user == winner
+    
     if request.method == 'POST' and request.user.is_authenticated:
         form = BidForm(request.POST)
         if item.owner == request.user:
             
             form.add_error(None, "You cannot bid on your own item.")
-        elif item.end_time and item.end_time < timezone.now():
+        elif auction_expired:
             form.add_error(None, "Auction has ended. Bidding is closed.")
         elif form.is_valid():
             bid = form.save(commit=False)
@@ -180,7 +191,15 @@ def product(request,id):
                 form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
     else:
         form = BidForm()
-    return render(request, 'product.html', {'item': item, 'bids': bids, 'form': form})
+    return render(request, 'product.html', {
+        'item': item, 
+        'bids': bids, 
+        'form': form,
+        'auction_expired': auction_expired,
+        'winner': winner,
+        'is_winner': is_winner,
+        'now': timezone.now()
+    })
 @login_required
 def edit_item(request, id):
     item = Item.objects.get(id=id, owner=request.user)
@@ -265,32 +284,121 @@ def get_latest_bid(request, id):
             'amount': float(latest_bid.bid_price),
             'bidder': latest_bid.bidder.username
         })
-    else:
-        return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})
+    else:        return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})
 
-
-@login_required(login_url='login_view')
-def profile_view(request):
-    profile=request.user
-    bids = Bid.objects.filter(bidder=profile).select_related('item')
-    return render(request, 'profile.html', {'user': request.user, 'profile': profile, 'bids':bids})
-@login_required
-def delete_profile(request):
-    if request.method == 'POST':
-        request.user.delete()
-        messages.success(request, "Profile deleted successfully.")
-        return redirect('home')
-    return render(request, 'delete_profile.html', {'user': request.user})
+# Khalti Payment Views
+import requests
 
 @login_required
-def edit_profile(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Profile updated successfully.")
-            return redirect('profile_view')
-    else:
-        form = UserCreationForm(instance=request.user)
+def initiate_payment(request, item_id):
+    """Initiate payment with Khalti"""
+    item = get_object_or_404(Item, id=item_id)
+    bids = item.bid_set.order_by('-bid_price')
+    
+    # Check if user is the winner
+    if not (bids.exists() and bids.first().bidder == request.user):
+        messages.error(request, "You are not authorized to make payment for this item.")
+        return redirect('product', id=item_id)
+    
+    # Check if auction has expired
+    if not (item.end_time and item.end_time < timezone.now()):
+        messages.error(request, "Auction is still active. Payment not available yet.")
+        return redirect('product', id=item_id)
+    
+    winning_bid = bids.first()
+    amount_in_paisa = int(winning_bid.bid_price * 100)  # Convert to paisa
+    
+    payload = {
+        "return_url": request.build_absolute_uri(f"/payment-callback/{item_id}/"),
+        "website_url": request.build_absolute_uri("/"),
+        "amount": amount_in_paisa,
+        "purchase_order_id": f"auction_{item_id}_{request.user.id}_{timezone.now().strftime('%Y%m%d%H%M%S')}",
+        "purchase_order_name": item.name,
+        "customer_info": {
+            "name": request.user.get_full_name() or request.user.username,
+            "email": request.user.email,
+            "phone": getattr(request.user, 'phone_number', '9800000000')
+        },
+        "product_details": [
+            {
+                "identity": str(item_id),
+                "name": item.name,
+                "total_price": amount_in_paisa,
+                "quantity": 1,
+                "unit_price": amount_in_paisa
+            }
+        ]
+    }
+    
+    headers = {
+        'Authorization': settings.KHALTI_SECRET_KEY,
+        'Content-Type': 'application/json',
+    }
+    
+    try:
+        response = requests.post(
+            f"{settings.KHALTI_BASE_URL}epayment/initiate/",
+            json=payload,
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Store payment info
+            Payment.objects.create(
+                user=request.user,
+                item=item,
+                amount=winning_bid.bid_price,
+                payment_status="Initiated"
+            )
+            return redirect(data['payment_url'])
+        else:
+            messages.error(request, "Payment initiation failed. Please try again.")
+            return redirect('product', id=item_id)
+            
+    except Exception as e:
+        messages.error(request, "Payment service unavailable. Please try again later.")
+        return redirect('product', id=item_id)
 
-    return render(request, 'edit_profile.html', {'form': form, 'user': request.user})
+def payment_callback(request, item_id):
+    """Handle payment callback from Khalti"""
+    item = get_object_or_404(Item, id=item_id)
+    
+    pidx = request.GET.get('pidx')
+    status = request.GET.get('status')
+    transaction_id = request.GET.get('transaction_id')
+    
+    if status == 'Completed' and pidx:
+        # Verify payment with Khalti
+        headers = {
+            'Authorization': settings.KHALTI_SECRET_KEY,
+            'Content-Type': 'application/json',
+        }
+        
+        try:
+            response = requests.post(
+                f"{settings.KHALTI_BASE_URL}epayment/lookup/",
+                json={"pidx": pidx},
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('status') == 'Completed':
+                    # Update payment status
+                    payment = Payment.objects.filter(item=item, user=request.user).last()
+                    if payment:
+                        payment.payment_status = "Completed"
+                        payment.save()
+                    
+                    # Mark item as sold
+                    item.is_sold = True
+                    item.save()
+                    
+                    messages.success(request, "Payment successful! You have successfully purchased this item.")
+                    return redirect('product', id=item_id)
+        except:
+            pass
+    
+    messages.error(request, "Payment failed or was cancelled.")
+    return redirect('product', id=item_id)
