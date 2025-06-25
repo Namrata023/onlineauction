@@ -22,5 +22,6 @@ urlpatterns = [
     path('profile/', profile_view, name='profile'),
     path('edit_profile/', edit_profile, name='edit_profile'),
     path('delete_profile/', delete_profile, name='delete_profile'),
-   
+    path('initiate-payment/<int:item_id>/', initiate_payment, name='initiate_payment'),
+    path('payment-callback/<int:item_id>/', payment_callback, name='payment_callback'),
 ]
