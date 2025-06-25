@@ -19,5 +19,5 @@ urlpatterns = [
     path('privacy_policy/', privacy_policy, name='privacy_policy'),
     path('terms_of_service/', terms_of_service, name='terms_of_service'),
     path('get-latest-bid/<int:id>/', get_latest_bid, name='get_latest_bid'),
-
+   
 ]
