@@ -103,7 +103,7 @@ def add_item(request):
             
         for img in request.FILES.getlist('images'):
             ItemImage.objects.create(item=item, image=img)
-        users_to_notify = User.objects.exclude(id=request.user.id)
+        users_to_notify = CustomUser.objects.exclude(id=request.user.id)
         for user in users_to_notify:
             # In-app notification
             Notification.objects.create(
