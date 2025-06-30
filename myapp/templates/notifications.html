@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Your Notifications</h2>
+    <ul class="list-unstyled">
+      {% for note in notifications %}
+        <li class="{% if not note.is_read %}fw-bold{% else %}text-muted{% endif %} mb-2">
+          {{ note.message|default:"No message" }}
+          <br>
+          <small class="text-secondary">({{ note.created_at|timesince }} ago)</small>
+        </li>
+      {% empty %}
+        <li>No notifications yet.</li>
+      {% endfor %}
+    </ul>
+</div>
+{% endblock %}

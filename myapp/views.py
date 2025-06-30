@@ -4,13 +4,18 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import *
 from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, ItemImageFormSet
-from django.contrib.auth import authenticate, login,logout
+from django.contrib.auth import authenticate, login,logout, get_user_model
 from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
 from .utils import get_similar_items, get_user_based_recommendations
+
+
+
+User = get_user_model()
+
 
 def simple_page_view(request):
     return render(request, 'myapp/simple_page.html')
@@ -27,9 +32,10 @@ def home(request):
         query = ''
 
     no_results = query and not items.exists()
-
-     
-    return render(request, 'base.html', {'items': items,'query': query,'no_results': no_results,})
+    unread_count = 0
+    if request.user.is_authenticated:
+        unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return render(request, 'base.html', {'items': items,'query': query,'no_results': no_results,'unread_count': unread_count,})
     
 def about(request):
     faqs = [
@@ -97,7 +103,22 @@ def add_item(request):
             
         for img in request.FILES.getlist('images'):
             ItemImage.objects.create(item=item, image=img)
-
+        users_to_notify = User.objects.exclude(id=request.user.id)
+        for user in users_to_notify:
+                # In-app notification
+                
+            Notification.objects.create(
+                    user=user,
+                    message=f"New item '{item.name}' listed by {request.user.username} check it out!",
+                )
+                # Email notification
+            subject = "New Item Listed for Auction!"
+            message = (
+                    f"Hello {user.username},\n\n"
+                    f"A new item '{item.name}' has just been listed for auction.\n"
+                    "Visit the site to place your bid now!"
+                )
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
            
             subject = 'Item Added Successfully'
             message = f"Hi {request.user.username},\n\nYour item '{item.name}' has been added successfully to the auction platform."
@@ -156,7 +177,7 @@ def product(request,id):
     item = Item.objects.get(id=id)
     bids = item.bid_set.order_by('-bid_price')
     
-    # Check if auction has expired
+    
     auction_expired = item.end_time and item.end_time < timezone.now()
     winner = None
     is_winner = False
@@ -212,6 +233,9 @@ def edit_item(request, id):
 
     if item.owner != request.user:
         return redirect('home')
+    if item.bid_set.exists():
+        messages.error(request, "You cannot edit this item because bidding has already started.")
+        return redirect('product', id=id)
 
     if request.method == 'POST':
         form = ItemForm(request.POST, request.FILES, instance=item)
@@ -256,11 +280,15 @@ def item_detail(request, item_id):
         'user_based': user_based
     })
 
-login_required
+@login_required
 def delete_item(request, id):
     item = Item.objects.get(id=id)
     if request.user != item.owner:
         return HttpResponseForbidden("You are not allowed to delete this item.")
+    if item.bid_set.exists():
+        messages.error(request, "You cannot edit this item because bidding has already started.")
+        return redirect('product', id=id)
+    
     if request.method == 'POST':
         item.delete()
         messages.success(request, "Item deleted successfully.")
@@ -448,3 +476,10 @@ def edit_profile(request):
         form = UserCreationForm(instance=request.user)
 
     return render(request, 'edit_profile.html', {'form': form, 'user': request.user})
+
+
+@login_required(login_url='login_view')
+def notifications_view(request):
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'notifications.html', {'notifications': notifications})
+

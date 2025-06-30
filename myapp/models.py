@@ -6,7 +6,6 @@ from datetime import timedelta
 from django.core.validators import MinValueValidator,RegexValidator
 
 
-
 nepal_phone_regex = RegexValidator(
     regex=r'^(\+977)?9\d{9}$',
     message="Phone number must be a valid Nepal mobile number like '+97798XXXXXXXX' or '98XXXXXXXX'."
@@ -85,3 +84,11 @@ class Payment(models.Model):
 
 
 
+class Notification(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}: {self.message[:30]}"
