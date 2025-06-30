@@ -105,19 +105,18 @@ def add_item(request):
             ItemImage.objects.create(item=item, image=img)
         users_to_notify = User.objects.exclude(id=request.user.id)
         for user in users_to_notify:
-                # In-app notification
-                
+            # In-app notification
             Notification.objects.create(
-                    user=user,
-                    message=f"New item '{item.name}' listed by {request.user.username} check it out!",
-                )
-                # Email notification
+                user=user,
+                message=f"New item '{item.name}' listed by {request.user.username} check it out!",
+            )
+            # Email notification
             subject = "New Item Listed for Auction!"
             message = (
-                    f"Hello {user.username},\n\n"
-                    f"A new item '{item.name}' has just been listed for auction.\n"
-                    "Visit the site to place your bid now!"
-                )
+                f"Hello {user.username},\n\n"
+                f"A new item '{item.name}' has just been listed for auction.\n"
+                "Visit the site to place your bid now!"
+            )
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
            
             subject = 'Item Added Successfully'
