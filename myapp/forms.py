@@ -35,7 +35,7 @@ class FeedbackForm(forms.ModelForm):
 class UserCreationForm(BaseUserCreationForm):
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'is_seller', 'phone_number', 'profile_picture', 'identification_number', 'identification_image', 'password1', 'password2']
+        fields = ['username', 'email', 'address',  'is_seller', 'phone_number', 'profile_picture', 'identification_number', 'identification_image', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -49,7 +49,7 @@ class UserCreationForm(BaseUserCreationForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'is_seller', 'phone_number', 'profile_picture', 'identification_number', 'identification_image']
+        fields = ['username', 'email', 'address', 'is_seller', 'phone_number', 'profile_picture', 'identification_number', 'identification_image']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

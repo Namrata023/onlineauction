@@ -95,8 +95,10 @@ def terms_of_service(request):
 @login_required(login_url='login_view')
 def add_item(request):
     if not request.user.is_seller:
-        return HttpResponseForbidden("Only sellers can add items.")
-   
+        messages.error(request, "You must be a seller to add items.")
+        return redirect('edit_profile')
+    
+      
     if request.method == 'POST':
         form = ItemForm(request.POST, request.FILES)
         if form.is_valid():
@@ -480,13 +482,7 @@ def profile_view(request):
     profile=request.user
     bids = Bid.objects.filter(bidder=profile).select_related('item')
     return render(request, 'profile.html', {'user': request.user, 'profile': profile, 'bids':bids})
-@login_required
-def delete_profile(request):
-    if request.method == 'POST':
-        request.user.delete()
-        messages.success(request, "Profile deleted successfully.")
-        return redirect('home')
-    return render(request, 'delete_profile.html', {'user': request.user})
+
 
 @login_required
 def edit_profile(request):
