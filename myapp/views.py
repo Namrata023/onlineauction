@@ -154,7 +154,7 @@ def login_view(request):
 def register(request):
     form = UserCreationForm()
     if request.method == "POST":
-        form =UserCreationForm(request.POST)
+        form = UserCreationForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()
             user.save()
@@ -495,7 +495,7 @@ def edit_profile(request):
         if form.is_valid():
             form.save()
             messages.success(request, "Profile updated successfully.")
-            return redirect('profile_view')
+            return redirect('profile')
     else:
         form = UserCreationForm(instance=request.user)
 

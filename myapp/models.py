@@ -19,10 +19,10 @@ class CustomUser(AbstractUser):
         null=True,
         help_text="Enter a valid Nepal mobile number with or without +977."
     )
-    profile_picture = models.ImageField(upload_to='media/profile_pictures/', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     address = models.CharField(max_length=255, blank=True, null=True)
     identification_number = models.IntegerField(validators=[MinValueValidator(1)], blank=True, null=True)
-    identification_image = models.ImageField(upload_to='media/identification_images/', blank=True, null=True)
+    identification_image = models.ImageField(upload_to='identification_images/', blank=True, null=True)
     is_seller = models.BooleanField(default=False)
    
     def __str__(self):
