@@ -36,7 +36,7 @@ class Item(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=100)
-    description = models.CharField(max_length=100)
+    description = models.CharField(max_length=10000)
     tags = models.CharField(max_length=255, blank=True, null=True)
     minimum_price = models.FloatField()
     # image = models.ImageField(upload_to="images/", blank=True, null=True)
