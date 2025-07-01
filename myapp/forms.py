@@ -44,3 +44,17 @@ class UserCreationForm(BaseUserCreationForm):
             'placeholder': 'e.g., 98..',
             'type': 'tel',
         })
+
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'email', 'is_seller', 'phone_number', 'profile_picture', 'identification_number', 'identification_image']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['phone_number'].required = True
+        self.fields['phone_number'].widget.attrs.update({
+            'placeholder': 'e.g., 98..',
+            'type': 'tel',
+        })

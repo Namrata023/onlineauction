@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import *
-from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, ItemImageFormSet
+from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, UserProfileForm, ItemImageFormSet
 from django.contrib.auth import authenticate, login,logout, get_user_model
 from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
@@ -491,13 +491,13 @@ def delete_profile(request):
 @login_required
 def edit_profile(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST, request.FILES, instance=request.user)
+        form = UserProfileForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "Profile updated successfully.")
             return redirect('profile')
     else:
-        form = UserCreationForm(instance=request.user)
+        form = UserProfileForm(instance=request.user)
 
     return render(request, 'edit_profile.html', {'form': form, 'user': request.user})
 
