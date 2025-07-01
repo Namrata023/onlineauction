@@ -33,19 +33,37 @@
       }
 
       .card {
-        border: none;
+        border: 1px solid #dee2e6; 
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         transition: transform 0.2s ease-in-out;
         position: relative;
+        border-radius: 0.5rem;
       }
 
       .card:hover {
         transform: scale(1.02);
       }
+      .card-body {
+  border-top: 1px solid #f1f1f1;
+}
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+  gap: 2rem;
+  padding: 2rem;
+}
+.card-img-top {
+  height: 250px;
+  object-fit: cover;
+}
+
 
       /* Navbar changed to light blue shade */
       .navbar {
         background-color: #dbe9f4 !important;
+        position: sticky;
+        top: 0;
+        z-index: 1030;
       }
       .navbar .nav-link {
         color: #324a6e !important;
@@ -144,7 +162,7 @@
     <section class="hero">
       <div class="container">
         <h1 class="display-5 fw-bold">Welcome to the Official Online Auction</h1>
-        <p class="lead">Browse and bid on surplus government items, furniture, electronics and more.</p>
+        <p class="lead">Browse and bid on surplus government items,personal items, furniture, electronics and more.</p>
         
         <form method="get" action="{% url 'home' %}" class="d-flex justify-content-center mt-4 search-box">
           <input type="text" name="q" placeholder="Search items..." class="form-control me-2" value="{{ query|default:'' }}">

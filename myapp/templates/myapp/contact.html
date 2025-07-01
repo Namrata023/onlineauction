@@ -22,18 +22,7 @@
         <form method="post">
             {% csrf_token %}
         {{ form|crispy }}
-            {% comment %} <div class="mb-3">
-                {{ form.name.label_tag }}
-                {{ form.name }}
-            </div>
-            <div class="mb-3">
-                {{ form.email.label_tag }}
-                {{ form.email }}
-            </div>
-            <div class="mb-3">
-                {{ form.message.label_tag }}
-                {{ form.message }}
-            </div> {% endcomment %}
+
             <button type="submit" class="btn btn-primary">Submit Feedback</button>
         </form>
     </div>
