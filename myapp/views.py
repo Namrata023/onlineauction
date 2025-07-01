@@ -507,15 +507,18 @@ def notifications_view(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'notifications.html', {'notifications': notifications})
 
-otp_store = {}
-
 def request_reset_otp_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         try:
             user = User.objects.get(email=email)
             otp = str(random.randint(100000, 999999))
-            otp_store[user.username] = otp
+            
+            # Delete any existing OTP for this user
+            PasswordResetOTP.objects.filter(user=user).delete()
+            
+            # Create new OTP record in database
+            PasswordResetOTP.objects.create(user=user, otp=otp)
             request.session['reset_user'] = user.username
 
             send_mail(
@@ -572,7 +575,6 @@ def set_new_password_view(request):
         if new_pass == confirm_pass:
             user.password = make_password(new_pass)
             user.save()
-            del otp_store[username]
             request.session.flush()
             messages.success(request, "Password reset successful.")
             return redirect('login_view')
