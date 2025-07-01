@@ -25,4 +25,8 @@ urlpatterns = [
     path('initiate-payment/<int:item_id>/', initiate_payment, name='initiate_payment'),
     path('payment-callback/<int:item_id>/', payment_callback, name='payment_callback'),
     path('notifications/', notifications_view, name='notifications'),
+    path('reset-password/', request_reset_otp_view, name='request_reset_otp'),
+    path('verify-reset-otp/', verify_reset_otp_view, name='verify_reset_otp'),
+    path('set-new-password/', set_new_password_view, name='set_new_password'),
+
 ]

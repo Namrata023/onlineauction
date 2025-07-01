@@ -1,55 +1,132 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Profile - {{ profile.username }}{% endblock %}
 
 {% block content %}
-{% load static %}
+<div class="container py-4">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
 
-<div class="container">
-    <div class="profile-card text-center">
-        {% if profile.profile_picture %}
-    <img src="{{ profile.profile_picture.url }}" class="profile-image mb-3" alt="Profile Picture">
-{% else %}
-    <img src="{% static 'default-user.png' %}" class="profile-image mb-3" alt="Default Profile Picture">
-{% endif %}
-
-        <h4>{{ profile.username }}</h4>
-        <p class="text-muted">{{ profile.email }}</p>
-        <p><strong>Phone:</strong> {{ profile.phone_number }}</p>
-        <p><strong>Seller:</strong> {% if user.is_seller %}Yes{% else %}No{% endif %}</p>
-        <hr>
-        <p><strong>Full Name:</strong> {{ profile.first_name }} {{ profile.last_name }}</p>
-        <p><strong>Address:</strong> {{ profile.address }}</p>
-        <p><strong>Date of Birth:</strong> {{ profile.date_of_birth }}</p>
-
-        <p><strong>Identification Number:</strong> {{ profile.identification_number }}</p>
-        {% if profile.identification_image %}
-            <p><strong>ID Image:</strong><br><img src="{{ profile.identification_image.url }}" alt="ID" style="max-width: 300px;"></p>
-        {% endif %}
-        <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary mt-3">Edit Profile</a>
-    </div>
-    <div class="card mt-4 shadow-sm border-0 rounded-4">
-                <div class="card-body">
-                    <h4 class="mb-3">Your Bids</h4>
-                      {% if bids %}
-                        <ul class="list-group">
-                            {% for bid in bids %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {{ bid.item.name }} 
-                                    <span class="badge bg-info text-dark">Your Bid: ${{ bid.bid_price }}</span>
-                                   
-                                </li>
-                            {% endfor %}
-                        </ul>
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body text-center">
+                    {% if profile.profile_picture %}
+                        <img src="{{ profile.profile_picture.url }}" 
+                             class="rounded-circle mb-2 shadow" 
+                             style="width: 100px; height: 100px; object-fit: cover;" 
+                             alt="Profile Picture">
                     {% else %}
-                        <p class="text-muted">You haven’t placed any bids yet.</p>
+                        <img src="{% static 'default-user.png' %}" 
+                             class="rounded-circle mb-2 shadow" 
+                             style="width: 100px; height: 100px; object-fit: cover;" 
+                             alt="Default Profile">
                     {% endif %}
+                    <h5>{{ profile.username }}</h5>
+                    <p class="text-muted small">{{ profile.email }}</p>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action active" data-bs-toggle="tab" href="#bids">📦 My Bids</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#listings">🛒 My Listings</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#settings">⚙️ Settings</a>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <div class="tab-content">
+                <!-- My Bids -->
+                <div class="tab-pane fade show active" id="bids">
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Your Bids</h5>
+                            {% if bids %}
+                                <ul class="list-group list-group-flush">
+                                    {% for bid in bids %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <a href="{% url 'product' bid.item.id %}" class="text-decoration-none text-dark">{{ bid.item.name }}</a>
+                                            <span class="badge bg-info text-dark">Rs.{{ bid.bid_price }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">No bids placed yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Listings -->
+                <div class="tab-pane fade" id="listings">
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Your Listings</h5>
+                            {% with listings=profile.item_set.all %}
+                                {% if listings %}
+                                    <ul class="list-group list-group-flush">
+                                        {% for item in listings %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <a href="{% url 'product' item.id %}" class="text-decoration-none text-dark">{{ item.name }}</a>
+                                                <span class="badge bg-{{ item.is_sold|yesno:'success-warning' }}">{{ item.is_sold|yesno:'Sold,Active' }}</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">No listings available.</p>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div class="tab-pane fade" id="settings">
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Settings</h5>
+                            <div class="row mb-2">
+                                <div class="col-sm-6"><strong>Name:</strong> {{ profile.first_name }} {{ profile.last_name }}</div>
+                                <div class="col-sm-6"><strong>Phone:</strong> {{ profile.phone_number }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-sm-6"><strong>Seller:</strong> {{ profile.is_seller|yesno:"Yes,No" }}</div>
+                                <div class="col-sm-6"><strong>Address:</strong> {{ profile.address }}</div>
+                            </div>
+
+                            {% if profile.identification_image %}
+                                <div class="mt-3">
+                                    <strong>Identification Image:</strong><br>
+                                    <img src="{{ profile.identification_image.url }}" 
+                                         class="img-thumbnail mt-2" 
+                                         style="max-width: 100%; max-height: 250px;" 
+                                         alt="Identification Image">
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No identification image uploaded.</p>
+                            {% endif %}
+
+                            <hr class="my-4">
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary btn-sm">✏️ Edit Profile</a>
+                                <a href="{% url 'delete_profile' %}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete your profile?')">🗑️ Delete</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            
-            <div class="card mt-4 shadow-sm border-0 rounded-4">
+            <!-- Support & Legal -->
+            <div class="card shadow-sm rounded-4 mb-5">
                 <div class="card-body">
-                    <h5 class="mb-3">Support & Legal</h5>
+                    <h5 class="fw-bold mb-3">Support & Legal</h5>
                     <div class="row row-cols-2 row-cols-md-3 g-2">
                         <div><a href="/contact/" class="text-decoration-none text-primary">Contact Us</a></div>
                         <div><a href="/feedback/" class="text-decoration-none text-primary">Feedback</a></div>
@@ -60,6 +137,18 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 </div>
 
+<!-- Bootstrap JS for tab switching -->
+<script>
+    const tabLinks = document.querySelectorAll('.list-group-item[data-bs-toggle="tab"]');
+    tabLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            tabLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+        });
+    });
+</script>
 {% endblock %}

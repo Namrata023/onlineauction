@@ -24,6 +24,7 @@ class CustomUser(AbstractUser):
     identification_number = models.IntegerField(validators=[MinValueValidator(1)], blank=True, null=True)
     identification_image = models.ImageField(upload_to='media/identification_images/', blank=True, null=True)
     is_seller = models.BooleanField(default=False)
+   
     def __str__(self):
         return self.username
     
@@ -92,3 +93,11 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.username}: {self.message[:30]}"
+
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=5)

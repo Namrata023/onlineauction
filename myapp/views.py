@@ -11,8 +11,8 @@ from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
 from .utils import get_similar_items, get_user_based_recommendations
-
-
+from django.core.paginator import Paginator
+import random
 
 User = get_user_model()
 
@@ -30,12 +30,15 @@ def home(request):
     else:
         items = Item.objects.all()
         query = ''
+    paginator = Paginator(items, 12)  # Show 12 items per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     no_results = query and not items.exists()
     unread_count = 0
     if request.user.is_authenticated:
         unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
-    return render(request, 'base.html', {'items': items,'query': query,'no_results': no_results,'unread_count': unread_count,})
+    return render(request, 'base.html', {'items': page_obj,'query': query or '','no_results': no_results,'unread_count': unread_count,})
     
 def about(request):
     faqs = [
@@ -111,7 +114,7 @@ def add_item(request):
                 message=f"New item '{item.name}' listed by {request.user.username} check it out!",
             )
             # Email notification
-            subject = "New Item Listed for Auction!"
+            subject = "New Item Listed for Auction Check it Out!"
             message = (
                 f"Hello {user.username},\n\n"
                 f"A new item '{item.name}' has just been listed for auction.\n"
@@ -295,19 +298,41 @@ def delete_item(request, id):
 
     return render(request, 'delete_item.html', {'item': item})
 
-def notify_outbid_user(previous_highest_bid):
-    user = previous_highest_bid.user
+def notify_outbid_user(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    bids = Bid.objects.filter(item=item).order_by('-bid_price')
+    if bids.count() < 2:
+        return HttpResponse("No previous bidder to notify.")
+
+    previous_highest_bid=bids[1]
+    user = previous_highest_bid.bidder
+
+    Notification.objects.create(
+        user=user,
+        message=f"You have been outbid on '{item.name}'. Place a higher bid now!"
+    )
     subject = "You've been outbid!"
     message = f"Hello {user.username},\n\nYou have been outbid on '{previous_highest_bid.item.name}'. Visit the auction to place a higher bid!"
     send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+    
+    return HttpResponse(f"Notification sent to {user.username}.")
 
 def notify_auction_winner(item):
-    winning_bid = item.bids.order_by('-amount').first()
-    if winning_bid:
-        subject = "You won the auction!"
-        message = f"Congratulations {winning_bid.user.username}!\n\nYou won the auction for '{item.name}' with a bid of ${winning_bid.amount}."
-        send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.user.email])
-
+    item= get_object_or_404(Item, id=item.id)
+    winning_bid = Bid.objects.filter(item=item).order_by('-bid_price').first()
+    if not winning_bid:
+        return HttpResponse("No winning bid found.")
+    
+    user = winning_bid.bidder
+    
+    Notification.objects.create(
+        user=user,
+        message=f"Congratulations! You won the auction for '{item.name}' with a bid of ${winning_bid.bid_price}."
+    )
+    subject = "You won the auction!"
+    message = f"Congratulations {winning_bid.user.username}!\n\nYou won the auction for '{item.name}' with a bid of ${winning_bid.amount}."
+    send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.user.email])
+    return HttpResponse(f"Winner notification sent to {user.username}.")
 
 from django.http import JsonResponse
 def get_latest_bid(request, id):
@@ -481,4 +506,78 @@ def edit_profile(request):
 def notifications_view(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'notifications.html', {'notifications': notifications})
+
+otp_store = {}
+
+def request_reset_otp_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            otp = str(random.randint(100000, 999999))
+            otp_store[user.username] = otp
+            request.session['reset_user'] = user.username
+
+            send_mail(
+                "Your Password Reset OTP",
+                f"Hi {user.username}, your OTP to reset your password is: {otp}",
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email]
+            )
+            return redirect('verify_reset_otp')
+        except User.DoesNotExist:
+            messages.error(request, "No user with that email.")
+    return render(request, 'reset_password.html', {'mode': 'request'})
+def verify_reset_otp_view(request):
+    username = request.session.get('reset_user')
+    if not username:
+        messages.warning(request, "Session expired. Please try again.")
+        return redirect('request_reset_otp')
+
+    try:
+        otp_obj = PasswordResetOTP.objects.get(user__username=username)
+    except PasswordResetOTP.DoesNotExist:
+        messages.error(request, "No OTP request found. Please request again.")
+        return redirect('request_reset_otp')
+
+    # Check if OTP expired
+    if otp_obj.is_expired():
+        otp_obj.delete()
+        messages.error(request, "OTP has expired. Please request a new one.")
+        return redirect('request_reset_otp')
+
+    if request.method == 'POST':
+        entered_otp = request.POST.get('otp')
+        if entered_otp == otp_obj.otp:
+            request.session['otp_verified_user'] = username
+            otp_obj.delete()  
+            return redirect('set_new_password')
+        else:
+            messages.error(request, "Invalid OTP.")
+
+    return render(request, 'reset_password.html', {'mode': 'otp_verify'})
+
+from django.contrib.auth.hashers import make_password
+
+def set_new_password_view(request):
+    username = request.session.get('otp_verified_user')
+    if not username:
+        return redirect('request_reset_otp')
+
+    user = get_object_or_404(User, username=username)
+
+    if request.method == 'POST':
+        new_pass = request.POST.get('new_password')
+        confirm_pass = request.POST.get('confirm_password')
+        if new_pass == confirm_pass:
+            user.password = make_password(new_pass)
+            user.save()
+            del otp_store[username]
+            request.session.flush()
+            messages.success(request, "Password reset successful.")
+            return redirect('login_view')
+        else:
+            messages.error(request, "Passwords do not match.")
+    return render(request, 'reset_password.html', {'mode': 'set_password'})
+
 
