@@ -302,9 +302,9 @@
     return confirm("⚠️ Are you sure you want to place this bid?\nYou cannot cancel or undo your bid.\nIf you win, payment is required.");
   }
 
-  // Update every 5 seconds for bids and every 5 seconds for time remaining (since we show seconds)
+  // Update every 5 seconds for bids and every 1 second for time remaining (real-time countdown)
   setInterval(fetchLatestBid, 5000);
-  setInterval(fetchTimeRemaining, 5000);
+  setInterval(fetchTimeRemaining, 1000);
   
   // Initial load
   fetchLatestBid();
