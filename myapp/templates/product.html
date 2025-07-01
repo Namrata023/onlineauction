@@ -2,6 +2,23 @@
 {% load static %}
 
 {% block content %}
+<style>
+  .time-critical {
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+  
+  .time-warning {
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  }
+</style>
+
 <div class="container mt-5">
   <div class="row g-4">
     <!-- Item Image Carousel -->
@@ -50,6 +67,15 @@
           <p class="text-dark fw-semibold mb-1"><strong>Current Highest Bid:</strong> <span id="latest-bid" class="text-warning">Loading...</span></p>
           {% if item.end_time %}
             <p class="text-dark fw-semibold mb-1"><strong>Auction Ends:</strong> <span class="text-danger">{{ item.end_time }}</span></p>
+            <p class="text-dark fw-semibold mb-1"><strong>Time Remaining:</strong> 
+              <span id="time-remaining" class="fw-bold">
+                {% if time_remaining == "Auction ended" %}
+                  <span class="text-danger">{{ time_remaining }}</span>
+                {% else %}
+                  <span class="text-primary">{{ time_remaining }}</span>
+                {% endif %}
+              </span>
+            </p>
           {% endif %}
           <p class="text-dark fw-semibold mb-1"><strong>Tags:</strong> <span class="mb-1 text-dark fw-semibold">{{ item.tags }}</span></p>
         </div>
@@ -188,7 +214,7 @@
   </div>
 </div>
 
-<!-- JavaScript: Live Bid Fetch + Bid Confirm -->
+<!-- JavaScript: Live Bid Fetch + Time Remaining + Bid Confirm -->
 <script>
   function fetchLatestBid() {
     fetch("/get-latest-bid/{{ item.id }}/")
@@ -201,11 +227,87 @@
       });
   }
 
+  function fetchTimeRemaining() {
+    fetch("/get-time-remaining/{{ item.id }}/")
+      .then(response => response.json())
+      .then(data => {
+        const timeRemainingElement = document.getElementById("time-remaining");
+        if (timeRemainingElement) {
+          if (data.is_expired || data.time_remaining === "Auction ended") {
+            timeRemainingElement.innerHTML = '<span class="text-danger">Auction ended</span>';
+            // Optionally reload the page when auction ends to show winner section
+            if (!document.querySelector('.alert-warning')) {
+              location.reload();
+            }
+          } else {
+            // Add urgency styling based on time remaining
+            let className = "text-primary";
+            let extraClass = "";
+            let timeStr = data.time_remaining;
+            
+            // Check if time is critical (less than 1 hour)
+            if (timeStr.includes("h") && !timeStr.includes("d")) {
+              const hourMatch = timeStr.match(/(\d+)\s*h/);
+              if (hourMatch && parseInt(hourMatch[1]) <= 1) {
+                className = "text-warning time-warning";
+              }
+            }
+            
+            // Check if time is very critical (less than 30 minutes)
+            if (!timeStr.includes("d") && !timeStr.includes("h")) {
+              const minMatch = timeStr.match(/(\d+)\s*m/);
+              if (minMatch && parseInt(minMatch[1]) <= 30) {
+                className = "text-danger time-warning";
+                extraClass = "time-critical";
+              }
+            }
+            
+            // Check if time is extremely critical (less than 2 minutes or only seconds)
+            if (!timeStr.includes("d") && !timeStr.includes("h")) {
+              const minMatch = timeStr.match(/(\d+)\s*m/);
+              if (minMatch && parseInt(minMatch[1]) < 2) {
+                className = "text-danger time-warning";
+                extraClass = "time-critical";
+                timeStr += " ⚠️";
+              } else if (!timeStr.includes("m") && timeStr.includes("s")) {
+                // Only seconds remaining
+                className = "text-danger time-warning";
+                extraClass = "time-critical";
+                timeStr += " ⚠️";
+              }
+            }
+            
+            // Handle case when only seconds are left
+            if (timeStr === "0 s") {
+              className = "text-danger time-warning";
+              extraClass = "time-critical";
+              timeStr = "Ending soon ⚠️";
+            }
+            
+            timeRemainingElement.innerHTML = '<span class="' + className + ' fw-bold ' + extraClass + '">' + timeStr + '</span>';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching time remaining:', error);
+      });
+  }
+
+  function updateData() {
+    fetchLatestBid();
+    fetchTimeRemaining();
+  }
+
   function confirmBid() {
     return confirm("⚠️ Are you sure you want to place this bid?\nYou cannot cancel or undo your bid.\nIf you win, payment is required.");
   }
 
+  // Update every 5 seconds for bids and every 5 seconds for time remaining (since we show seconds)
   setInterval(fetchLatestBid, 5000);
+  setInterval(fetchTimeRemaining, 5000);
+  
+  // Initial load
   fetchLatestBid();
+  fetchTimeRemaining();
 </script>
 {% endblock %}

@@ -47,6 +47,42 @@ class Item(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def get_time_remaining(self):
+        """Calculate time remaining until auction ends"""
+        if not self.end_time:
+            return None
+        
+        now = timezone.now()
+        if now >= self.end_time:
+            return "Auction ended"
+        
+        time_diff = self.end_time - now
+        days = time_diff.days
+        hours, remainder = divmod(time_diff.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        parts = []
+        if days > 0:
+            parts.append(f"{days} d")
+        if hours > 0:
+            parts.append(f"{hours} h")
+        if minutes > 0:
+            parts.append(f"{minutes} m")
+        if seconds > 0:
+            parts.append(f"{seconds} s")
+        
+        if not parts:
+            return "0 s"
+        
+        return " ".join(parts)
+    
+    def is_auction_expired(self):
+        """Check if auction has expired"""
+        if not self.end_time:
+            return False
+        return timezone.now() >= self.end_time
+
 class ItemImage(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='images/')

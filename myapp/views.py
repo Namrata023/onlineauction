@@ -6,13 +6,14 @@ from .models import *
 from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, ItemImageFormSet
 from django.contrib.auth import authenticate, login,logout, get_user_model
 from collections import namedtuple
-from django.http import HttpResponseForbidden, HttpResponse
+from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
 from .utils import get_similar_items, get_user_based_recommendations
 from django.core.paginator import Paginator
 import random
+import requests
 
 User = get_user_model()
 
@@ -227,7 +228,8 @@ def product(request,id):
         'winner': winner,
         'is_winner': is_winner,
         'payment': payment,
-        'now': timezone.now()
+        'now': timezone.now(),
+        'time_remaining': item.get_time_remaining(),
     })
 @login_required
 def edit_item(request, id):
@@ -334,7 +336,6 @@ def notify_auction_winner(item):
     send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.user.email])
     return HttpResponse(f"Winner notification sent to {user.username}.")
 
-from django.http import JsonResponse
 def get_latest_bid(request, id):
     latest_bid = Bid.objects.filter(item_id=id).order_by('-bid_price').first()
     if latest_bid:
@@ -345,7 +346,6 @@ def get_latest_bid(request, id):
     else:        return JsonResponse({'amount': 'No bids yet', 'bidder': '-'})
 
 # Khalti Payment Views
-import requests
 
 @login_required
 def initiate_payment(request, item_id):
@@ -581,5 +581,20 @@ def set_new_password_view(request):
         else:
             messages.error(request, "Passwords do not match.")
     return render(request, 'reset_password.html', {'mode': 'set_password'})
+
+def get_time_remaining(request, item_id):
+    """AJAX endpoint to get time remaining for an item"""
+    try:
+        item = Item.objects.get(id=item_id)
+        time_remaining = item.get_time_remaining()
+        is_expired = item.is_auction_expired()
+        
+        return JsonResponse({
+            'time_remaining': time_remaining,
+            'is_expired': is_expired,
+            'end_time_timestamp': item.end_time.timestamp() if item.end_time else None
+        })
+    except Item.DoesNotExist:
+        return JsonResponse({'error': 'Item not found'}, status=404)
 
 
