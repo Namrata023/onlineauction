@@ -36,10 +36,7 @@ def home(request):
     page_obj = paginator.get_page(page_number)
 
     no_results = query and not items.exists()
-    unread_count = 0
-    if request.user.is_authenticated:
-        unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
-    return render(request, 'base.html', {'items': page_obj,'query': query or '','no_results': no_results,'unread_count': unread_count,})
+    return render(request, 'base.html', {'items': page_obj,'query': query or '','no_results': no_results})
     
 def about(request):
     faqs = [
@@ -76,7 +73,7 @@ def contact(request):
                 "Best regards,\nOnline Auction Team"
             )
             recipient_list = [feedback.email]
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
+            send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
 
             messages.success(request, "feedback:Thank you for your feedback! A confirmation email has been sent.")
             return redirect('contact')
@@ -104,30 +101,33 @@ def add_item(request):
             item.owner = request.user
             item.save()
 
+            # Process uploaded images
+            for img in request.FILES.getlist('images'):
+                ItemImage.objects.create(item=item, image=img)
             
-        for img in request.FILES.getlist('images'):
-            ItemImage.objects.create(item=item, image=img)
-        users_to_notify = CustomUser.objects.exclude(id=request.user.id)
-        for user in users_to_notify:
-            # In-app notification
-            Notification.objects.create(
-                user=user,
-                message=f"New item '{item.name}' listed by {request.user.username} check it out!",
-            )
-            # Email notification
-            subject = "New Item Listed for Auction Check it Out!"
-            message = (
-                f"Hello {user.username},\n\n"
-                f"A new item '{item.name}' has just been listed for auction.\n"
-                "Visit the site to place your bid now!"
-            )
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+            # Notify all other users about new item
+            users_to_notify = CustomUser.objects.exclude(id=request.user.id)
+            for user in users_to_notify:
+                # In-app notification
+                Notification.objects.create(
+                    user=user,
+                    message=f"New item '{item.name}' listed by {request.user.username} check it out!",
+                )
+                # Email notification
+                subject = "New Item Listed for Auction Check it Out!"
+                message = (
+                    f"Hello {user.username},\n\n"
+                    f"A new item '{item.name}' has just been listed for auction.\n"
+                    "Visit the site to place your bid now!"
+                )
+                send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
            
+            # Send confirmation email to the seller
             subject = 'Item Added Successfully'
             message = f"Hi {request.user.username},\n\nYour item '{item.name}' has been added successfully to the auction platform."
             recipient_list = [request.user.email]
+            send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
             
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
             return redirect('home') 
     else:
         form = ItemForm()
@@ -503,8 +503,14 @@ def edit_profile(request):
 
 
 @login_required(login_url='login_view')
+@login_required(login_url='login_view')
 def notifications_view(request):
     notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Mark all notifications as read when viewing the page
+    unread_notifications = notifications.filter(is_read=False)
+    unread_notifications.update(is_read=True)
+    
     return render(request, 'notifications.html', {'notifications': notifications})
 
 def request_reset_otp_view(request):
@@ -524,7 +530,7 @@ def request_reset_otp_view(request):
             send_mail(
                 "Your Password Reset OTP",
                 f"Hi {user.username}, your OTP to reset your password is: {otp}",
-                settings.DEFAULT_FROM_EMAIL,
+                settings.EMAIL_HOST_USER,
                 [user.email]
             )
             return redirect('verify_reset_otp')
