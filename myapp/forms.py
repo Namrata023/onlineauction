@@ -10,7 +10,7 @@ class ItemForm(forms.ModelForm):
     
     class Meta:
         model = Item
-        fields = ['name', 'description', 'minimum_price','end_time']
+        fields = ['name', 'tags', 'description', 'minimum_price','end_time']
         widgets = {
             'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }

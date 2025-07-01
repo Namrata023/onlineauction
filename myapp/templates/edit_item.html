@@ -1,44 +1,55 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
+{% block title %}Edit Item - Online Auction{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-5 py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow border-0 p-5 rounded">
+        <h2 class="text-center text-primary fw-bold mb-3 fs-4">Edit Item</h2>
 
-    {% if user.is_authenticated %}
+        {% if user.is_authenticated %}
 
-    <h2 class="mb-4">Edit Item</h2>
-
-    {% if form.errors %}
-        <div class="alert alert-danger">
-            <strong>Please fix the following errors:</strong>
-            <ul>
+          {% if form.errors %}
+            <div class="alert alert-danger">
+              <strong>Please fix the following errors:</strong>
+              <ul class="mb-0">
                 {% for field in form %}
-                    {% for error in field.errors %}
-                        <li>{{ field.label }}: {{ error }}</li>
-                    {% endfor %}
+                  {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                  {% endfor %}
                 {% endfor %}
-            </ul>
+              </ul>
+            </div>
+          {% endif %}
+
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form|crispy }}
+           
+
+            <div class="mb-3">
+              <label for="images" class="form-label">Upload Images</label>
+              <input type="file" name="images" class="form-control" multiple>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 fw-semibold fs-6">Update Item</button>
+          </form>
+
+        {% else %}
+          <div class="alert alert-info mt-4 text-center">
+            <p>You must be logged in to edit an item.</p>
+            <a href="{% url 'login_view' %}" class="btn btn-primary w-100 mt-2">Login</a>
+          </div>
+        {% endif %}
+
+        <div class="text-center mt-3">
+          <a href="{% url 'home' %}" class="btn btn-secondary w-100 fw-semibold fs-6">Back to Home</a>
         </div>
-    {% endif %}
-
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-
-        <label for="images">Upload Images:</label>
-        <input type="file" name="images" class="form-control" multiple>
-
-        <button type="submit" class="btn btn-success mt-3">Update Item</button>
-    </form>
-
-    {% else %}
-    <div class="alert alert-info mt-4">
-        <p>You must be logged in to edit an item.</p>
-        <a href="{% url 'login_view' %}" class="btn btn-primary">Login</a>
+      </div>
     </div>
-    {% endif %}
-
-    <br>
-    <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+  </div>
 </div>
 {% endblock %}
