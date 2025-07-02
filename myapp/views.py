@@ -126,9 +126,11 @@ def add_item(request):
             users_to_notify = CustomUser.objects.exclude(id=request.user.id)
             for user in users_to_notify:
                 # In-app notification
-                Notification.objects.create(
+                create_notification(
                     user=user,
-                    message=f"New item '{item.name}' listed by {request.user.username} check it out!",
+                    message=f"New item '{item.name}' listed by {request.user.username}. Check it out!",
+                    notification_type='general',
+                    priority='low'
                 )
                 # Email notification
                 subject = "New Item Listed for Auction Check it Out!"
@@ -231,6 +233,26 @@ def product(request,id):
                 bid.bidder = request.user
                 bid.bid_time = timezone.now()
                 bid.save()
+                
+                # Notify item owner about new bid
+                create_notification(
+                    user=item.owner,
+                    message=f"New bid of Rs.{bid.bid_price} placed on your item '{item.name}' by {request.user.username}.",
+                    notification_type='bid',
+                    priority='medium',
+                    related_item=item
+                )
+                
+                # Notify previous highest bidder about being outbid
+                if highest_bid and highest_bid.bidder != request.user:
+                    create_notification(
+                        user=highest_bid.bidder,
+                        message=f"You have been outbid on '{item.name}'. The new highest bid is Rs.{bid.bid_price}. Place a higher bid now!",
+                        notification_type='bid',
+                        priority='high',
+                        related_item=item
+                    )
+                
                 return redirect('product', id=id)
             else:
                 form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
@@ -325,9 +347,12 @@ def notify_outbid_user(request, item_id):
     previous_highest_bid=bids[1]
     user = previous_highest_bid.bidder
 
-    Notification.objects.create(
+    create_notification(
         user=user,
-        message=f"You have been outbid on '{item.name}'. Place a higher bid now!"
+        message=f"You have been outbid on '{item.name}'. Place a higher bid now!",
+        notification_type='bid',
+        priority='high',
+        related_item=item
     )
     subject = "You've been outbid!"
     message = f"Hello {user.username},\n\nYou have been outbid on '{previous_highest_bid.item.name}'. Visit the auction to place a higher bid!"
@@ -343,9 +368,12 @@ def notify_auction_winner(item):
     
     user = winning_bid.bidder
     
-    Notification.objects.create(
+    create_notification(
         user=user,
-        message=f"Congratulations! You won the auction for '{item.name}' with a bid of ${winning_bid.bid_price}."
+        message=f"Congratulations! You won the auction for '{item.name}' with a bid of Rs.{winning_bid.bid_price}.",
+        notification_type='auction_won',
+        priority='high',
+        related_item=item
     )
     subject = "You won the auction!"
     message = f"Congratulations {winning_bid.user.username}!\n\nYou won the auction for '{item.name}' with a bid of ${winning_bid.amount}."
@@ -670,4 +698,138 @@ def chatbot_view(request):
     
     # Return error for non-POST requests
     return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
+
+# Notification utility functions
+def create_notification(user, message, notification_type='general', priority='medium', related_item=None):
+    """Utility function to create notifications with proper typing"""
+    return Notification.objects.create(
+        user=user,
+        message=message,
+        notification_type=notification_type,
+        priority=priority,
+        related_item=related_item
+    )
+
+def notify_auction_completion(item):
+    """Handle all notifications when an auction completes"""
+    winning_bid = Bid.objects.filter(item=item).order_by('-bid_price').first()
+    
+    if winning_bid:
+        # Mark item as sold
+        item.is_sold = True
+        item.save()
+        
+        # Notify winner
+        create_notification(
+            user=winning_bid.bidder,
+            message=f"🎉 Congratulations! You won the auction for '{item.name}' with a bid of Rs.{winning_bid.bid_price}. Please proceed with payment.",
+            notification_type='auction_won',
+            priority='high',
+            related_item=item
+        )
+        
+        # Send winner email
+        try:
+            subject = "🎉 Congratulations! You Won the Auction!"
+            message = f"""
+Dear {winning_bid.bidder.username},
+
+Congratulations! You have successfully won the auction for "{item.name}".
+
+Auction Details:
+- Item: {item.name}
+- Your Winning Bid: Rs.{winning_bid.bid_price}
+- Seller: {item.owner.username}
+
+Please log in to complete your purchase.
+
+Best regards,
+OnlineAuction Team
+            """
+            send_mail(subject, message, settings.EMAIL_HOST_USER, [winning_bid.bidder.email], fail_silently=True)
+        except:
+            pass
+        
+        # Notify seller
+        create_notification(
+            user=item.owner,
+            message=f"💰 Great news! Your item '{item.name}' has been sold to {winning_bid.bidder.username} for Rs.{winning_bid.bidder.bid_price}.",
+            notification_type='item_sold',
+            priority='high',
+            related_item=item
+        )
+        
+        # Send seller email
+        try:
+            subject = "💰 Your Item Has Been Sold!"
+            message = f"""
+Dear {item.owner.username},
+
+Your auction has completed successfully!
+
+Sale Details:
+- Item: {item.name}
+- Winning Bid: Rs.{winning_bid.bid_price}
+- Winner: {winning_bid.bidder.username}
+
+The buyer will contact you for payment and delivery.
+
+Best regards,
+OnlineAuction Team
+            """
+            send_mail(subject, message, settings.EMAIL_HOST_USER, [item.owner.email], fail_silently=True)
+        except:
+            pass
+        
+        # Notify losing bidders
+        losing_bidders = Bid.objects.filter(item=item).exclude(id=winning_bid.id).values_list('bidder', flat=True).distinct()
+        for bidder_id in losing_bidders:
+            try:
+                bidder = winning_bid.bidder.__class__.objects.get(id=bidder_id)
+                create_notification(
+                    user=bidder,
+                    message=f"⏰ The auction for '{item.name}' has ended. Better luck next time!",
+                    notification_type='auction_lost',
+                    priority='medium',
+                    related_item=item
+                )
+            except:
+                continue
+                
+    else:
+        # No bids received
+        create_notification(
+            user=item.owner,
+            message=f"⏰ Your auction for '{item.name}' has ended without any bids. Consider relisting with adjustments.",
+            notification_type='general',
+            priority='medium',
+            related_item=item
+        )
+
+def check_and_complete_expired_auctions():
+    """Check for expired auctions and complete them"""
+    expired_items = Item.objects.filter(
+        end_time__lt=timezone.now(),
+        is_sold=False
+    )
+    
+    for item in expired_items:
+        notify_auction_completion(item)
+    
+    return expired_items.count()
+
+@login_required
+def check_expired_auctions(request):
+    """Manual trigger for checking expired auctions (admin only)"""
+    if not request.user.is_staff:
+        messages.error(request, "Access denied. Admin only.")
+        return redirect('home')
+    
+    count = check_and_complete_expired_auctions()
+    if count > 0:
+        messages.success(request, f"Successfully processed {count} expired auctions.")
+    else:
+        messages.info(request, "No expired auctions to process.")
+    
+    return redirect('home')
 
