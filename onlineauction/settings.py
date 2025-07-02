@@ -159,3 +159,6 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 # Khalti Payment Configuration
 KHALTI_SECRET_KEY = config('KHALTI_SECRET_KEY', default='key live_secret_key_68791341fdd94846a146f0457ff7b455')
 KHALTI_BASE_URL = 'https://dev.khalti.com/api/v2/'  # Use https://khalti.com/api/v2/ for production
+
+# OpenAI Configuration
+OPENAI_API_KEY = config('OPENAI_API_KEY')

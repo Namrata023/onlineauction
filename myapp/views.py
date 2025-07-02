@@ -12,8 +12,11 @@ from django.db.models import Q
 from django.utils import timezone
 from .utils import get_similar_items, get_user_based_recommendations
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
 import random
 import requests
+import json
+from .simple_bot import get_bot_response
 
 User = get_user_model()
 
@@ -599,4 +602,23 @@ def get_time_remaining(request, item_id):
     except Item.DoesNotExist:
         return JsonResponse({'error': 'Item not found'}, status=404)
 
+@csrf_exempt
+def chatbot_view(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            user_input = data.get("message", "").strip()
+            
+            if not user_input:
+                return JsonResponse({"error": "Message cannot be empty"}, status=400)
+            
+            reply = get_bot_response(user_input)
+            return JsonResponse({"reply": reply})
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON data"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": "Sorry, something went wrong. Please try again."}, status=500)
+    
+    # Return the chat template for GET requests
+    return render(request, 'chat.html')
 
