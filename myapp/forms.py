@@ -7,10 +7,23 @@ from django.forms import modelformset_factory
 
 
 class ItemForm(forms.ModelForm):
+    CATEGORY_CHOICES = [
+        ('electronics', 'Electronics'),
+        ('clothing', 'Clothing & Fashion'),
+        ('home_garden', 'Home & Garden'),
+        ('collectibles', 'Collectibles & Art'),
+        ('vehicles', 'Vehicles & Parts'),
+    ]
+    
+    category = forms.ChoiceField(
+        choices=CATEGORY_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text="Select the category that best describes your item"
+    )
     
     class Meta:
         model = Item
-        fields = ['name', 'tags', 'description', 'minimum_price','end_time']
+        fields = ['name', 'category', 'tags', 'description', 'minimum_price','end_time']
         widgets = {
             'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
