@@ -231,7 +231,6 @@ def product(request,id):
                 bid.bidder = request.user
                 bid.bid_time = timezone.now()
                 bid.save()
-                messages.success(request, 'Your bid has been placed!')
                 return redirect('product', id=id)
             else:
                 form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
