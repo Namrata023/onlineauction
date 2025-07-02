@@ -619,6 +619,6 @@ def chatbot_view(request):
         except Exception as e:
             return JsonResponse({"error": "Sorry, something went wrong. Please try again."}, status=500)
     
-    # Return the chat template for GET requests
-    return render(request, 'chat.html')
+    # Return error for non-POST requests
+    return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
 
