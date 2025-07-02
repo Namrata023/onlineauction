@@ -72,17 +72,28 @@ def get_homepage_recommendations_for_user(user, limit=6):
         id__in=user_bid_items
     ).exclude(
         owner=user  # Don't recommend user's own items
-    ).order_by('-created_at')[:limit]
+    ).order_by('-created_at')
+    
+    # Convert to list to avoid slice issues and limit
+    recommended_list = list(recommended[:limit])
     
     # If not enough recommendations, fill with popular items
-    if recommended.count() < limit:
-        popular = get_popular_items(limit - recommended.count())
-        # Combine and remove duplicates
-        recommended_ids = list(recommended.values_list('id', flat=True))
-        additional_popular = popular.exclude(id__in=recommended_ids)
-        recommended = list(recommended) + list(additional_popular)
+    if len(recommended_list) < limit:
+        # Get popular items, excluding already recommended ones
+        recommended_ids = [item.id for item in recommended_list]
+        popular_qs = Item.objects.annotate(
+            bid_count=Count('bid')
+        ).filter(
+            bid_count__gt=0,
+            is_sold=False
+        ).exclude(
+            id__in=recommended_ids
+        ).order_by('-bid_count')
+        
+        additional_popular = list(popular_qs[:limit - len(recommended_list)])
+        recommended_list.extend(additional_popular)
     
-    return recommended[:limit]
+    return recommended_list[:limit]
 
 
 def get_recently_added_items(limit=6):
