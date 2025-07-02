@@ -33,9 +33,17 @@ class CustomUser(AbstractUser):
 #     bio = models.TextField(blank=True)
 
 class Item(models.Model): 
+    CATEGORY_CHOICES = [
+        ('electronics', 'Electronics'),
+        ('clothing', 'Clothing & Fashion'),
+        ('home_garden', 'Home & Garden'),
+        ('collectibles', 'Collectibles & Art'),
+        ('vehicles', 'Vehicles & Parts'),
+    ]
+    
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    category = models.CharField(max_length=100)
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='electronics')
     description = models.CharField(max_length=10000)
     tags = models.CharField(max_length=255, blank=True, null=True)
     minimum_price = models.FloatField()
