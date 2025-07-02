@@ -231,7 +231,6 @@ def product(request,id):
                 bid.bidder = request.user
                 bid.bid_time = timezone.now()
                 bid.save()
-                messages.success(request, 'Your bid has been placed!')
                 return redirect('product', id=id)
             else:
                 form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
@@ -495,8 +494,46 @@ def payment_callback(request, item_id):
 @login_required(login_url='login_view')
 def profile_view(request):
     profile=request.user
-    bids = Bid.objects.filter(bidder=profile).select_related('item')
-    return render(request, 'profile.html', {'user': request.user, 'profile': profile, 'bids':bids})
+    
+    # Get all bids by the user
+    all_bids = Bid.objects.filter(bidder=profile).select_related('item').order_by('-bid_time')
+    
+    # Get user's listings
+    user_listings = Item.objects.filter(owner=profile).order_by('-created_at')
+    active_listings = user_listings.filter(is_sold=False)
+    sold_listings = user_listings.filter(is_sold=True)
+    
+    # Categorize bids
+    won_items = []
+    active_bids = []
+    lost_bids = []
+    
+    for bid in all_bids:
+        item = bid.item
+        highest_bid = Bid.objects.filter(item=item).order_by('-bid_price').first()
+        
+        if item.is_auction_expired() or item.is_sold:
+            # Auction ended
+            if highest_bid and highest_bid.bidder == profile:
+                won_items.append(bid)
+            else:
+                lost_bids.append(bid)
+        else:
+            # Auction still active
+            active_bids.append(bid)
+    
+    context = {
+        'user': request.user, 
+        'profile': profile, 
+        'bids': all_bids,
+        'won_items': won_items,
+        'active_bids': active_bids,
+        'lost_bids': lost_bids,
+        'active_listings': active_listings,
+        'sold_listings': sold_listings,
+    }
+    
+    return render(request, 'profile.html', context)
 
 
 @login_required
