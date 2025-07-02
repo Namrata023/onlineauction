@@ -140,10 +140,32 @@ class Payment(models.Model):
 
 
 class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('bid', 'Bid Related'),
+        ('auction_won', 'Auction Won'),
+        ('auction_lost', 'Auction Lost'),
+        ('item_sold', 'Item Sold'),
+        ('payment', 'Payment'),
+        ('general', 'General'),
+    ]
+    
+    PRIORITY_LEVELS = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='general')
+    priority = models.CharField(max_length=10, choices=PRIORITY_LEVELS, default='medium')
+    related_item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Notification for {self.user.username}: {self.message[:30]}"

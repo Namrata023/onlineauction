@@ -28,6 +28,7 @@ urlpatterns = [
     path('verify-reset-otp/', verify_reset_otp_view, name='verify_reset_otp'),
     path('set-new-password/', set_new_password_view, name='set_new_password'),
     path('get-time-remaining/<int:item_id>/', get_time_remaining, name='get_time_remaining'),
+    path('check-expired-auctions/', check_expired_auctions, name='check_expired_auctions'),
     path("chatbot/", chatbot_view, name="chatbot"),
 
 ]
