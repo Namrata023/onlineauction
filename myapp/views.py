@@ -10,7 +10,7 @@ from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
-from .utils import get_similar_items, get_user_based_recommendations
+from .utils import get_similar_items, get_user_based_recommendations, get_popular_items, get_homepage_recommendations_for_user, get_recently_added_items
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 import random
@@ -38,8 +38,20 @@ def home(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Get recommendations for homepage
+    popular_items = get_popular_items(6)
+    recommended_items = get_homepage_recommendations_for_user(request.user, 6)
+    recent_items = get_recently_added_items(6)
+
     no_results = query and not items.exists()
-    return render(request, 'base.html', {'items': page_obj,'query': query or '','no_results': no_results})
+    return render(request, 'base.html', {
+        'items': page_obj,
+        'query': query or '',
+        'no_results': no_results,
+        'popular_items': popular_items,
+        'recommended_items': recommended_items,
+        'recent_items': recent_items,
+    })
     
 def about(request):
     faqs = [
