@@ -33,8 +33,9 @@
                     <p class="text-muted small">{{ profile.email }}</p>
                 </div>
                 <ul class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action active" data-bs-toggle="tab" href="#bids">📦 My Bids</a>
-                    <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#listings">🛒 My Listings</a>
+                    <a class="list-group-item list-group-item-action active" data-bs-toggle="tab" href="#overview">� Overview</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#bidding">🏷️ Bidding</a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#selling">🛒 Selling</a>
                     <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#settings">⚙️ Settings</a>
                 </ul>
             </div>
@@ -43,46 +44,172 @@
         <!-- Main Content -->
         <div class="col-lg-9">
             <div class="tab-content">
-                <!-- My Bids -->
-                <div class="tab-pane fade show active" id="bids">
+                <!-- Overview -->
+                <div class="tab-pane fade show active" id="overview">
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-center bg-primary text-white">
+                                <div class="card-body">
+                                    <h3>{{ won_items|length }}</h3>
+                                    <small>Won Auctions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-center bg-info text-white">
+                                <div class="card-body">
+                                    <h3>{{ active_bids|length }}</h3>
+                                    <small>Active Bids</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-center bg-success text-white">
+                                <div class="card-body">
+                                    <h3>{{ sold_listings|length }}</h3>
+                                    <small>Items Sold</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card text-center bg-warning text-dark">
+                                <div class="card-body">
+                                    <h3>{{ active_listings|length }}</h3>
+                                    <small>Active Listings</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="card shadow-sm rounded-4 mb-4">
                         <div class="card-body">
-                            <h5 class="fw-bold mb-3">Your Bids</h5>
-                            {% if bids %}
+                            <h5 class="fw-bold mb-3">🏆 Recent Won Auctions</h5>
+                            {% if won_items %}
                                 <ul class="list-group list-group-flush">
-                                    {% for bid in bids %}
+                                    {% for bid in won_items|slice:":5" %}
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <a href="{% url 'product' bid.item.id %}" class="text-decoration-none text-dark">{{ bid.item.name }}</a>
-                                            <span class="badge bg-info text-dark">Rs.{{ bid.bid_price }}</span>
+                                            <div>
+                                                <a href="{% url 'product' bid.item.id %}" class="text-decoration-none text-dark">{{ bid.item.name }}</a>
+                                                <small class="text-muted d-block">Won on {{ bid.bid_time|date:"M d, Y" }}</small>
+                                            </div>
+                                            <span class="badge bg-success">Won - Rs.{{ bid.bid_price }}</span>
                                         </li>
                                     {% endfor %}
                                 </ul>
                             {% else %}
-                                <p class="text-muted">No bids placed yet.</p>
+                                <p class="text-muted">No won auctions yet.</p>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- My Listings -->
-                <div class="tab-pane fade" id="listings">
+                <!-- Bidding -->
+                <div class="tab-pane fade" id="bidding">
                     <div class="card shadow-sm rounded-4 mb-4">
                         <div class="card-body">
-                            <h5 class="fw-bold mb-3">Your Listings</h5>
-                            {% with listings=profile.item_set.all %}
-                                {% if listings %}
-                                    <ul class="list-group list-group-flush">
-                                        {% for item in listings %}
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-3">🔥 Active Bids</h5>
+                            {% if active_bids %}
+                                <ul class="list-group list-group-flush">
+                                    {% for bid in active_bids %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <a href="{% url 'product' bid.item.id %}" class="text-decoration-none text-dark">{{ bid.item.name }}</a>
+                                                <small class="text-muted d-block">{{ bid.item.get_time_remaining }}</small>
+                                            </div>
+                                            <span class="badge bg-info text-dark">Rs.{{ bid.bid_price }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">No active bids.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">🏆 Won Auctions</h5>
+                            {% if won_items %}
+                                <ul class="list-group list-group-flush">
+                                    {% for bid in won_items %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <a href="{% url 'product' bid.item.id %}" class="text-decoration-none text-dark">{{ bid.item.name }}</a>
+                                                <small class="text-muted d-block">Won on {{ bid.bid_time|date:"M d, Y" }}</small>
+                                            </div>
+                                            <span class="badge bg-success">Won - Rs.{{ bid.bid_price }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">No won auctions yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">❌ Unsuccessful Bids</h5>
+                            {% if lost_bids %}
+                                <ul class="list-group list-group-flush">
+                                    {% for bid in lost_bids|slice:":10" %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <a href="{% url 'product' bid.item.id %}" class="text-decoration-none text-dark">{{ bid.item.name }}</a>
+                                                <small class="text-muted d-block">Bid placed {{ bid.bid_time|date:"M d, Y" }}</small>
+                                            </div>
+                                            <span class="badge bg-secondary">Rs.{{ bid.bid_price }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">No unsuccessful bids.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selling -->
+                <div class="tab-pane fade" id="selling">
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">🛒 Active Listings</h5>
+                            {% if active_listings %}
+                                <ul class="list-group list-group-flush">
+                                    {% for item in active_listings %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
                                                 <a href="{% url 'product' item.id %}" class="text-decoration-none text-dark">{{ item.name }}</a>
-                                                <span class="badge bg-{{ item.is_sold|yesno:'success-warning' }}">{{ item.is_sold|yesno:'Sold,Active' }}</span>
-                                            </li>
-                                        {% endfor %}
-                                    </ul>
-                                {% else %}
-                                    <p class="text-muted">No listings available.</p>
-                                {% endif %}
-                            {% endwith %}
+                                                <small class="text-muted d-block">{{ item.get_time_remaining }}</small>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">Rs.{{ item.minimum_price }}+</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">No active listings.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm rounded-4 mb-4">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">✅ Sold Items</h5>
+                            {% if sold_listings %}
+                                <ul class="list-group list-group-flush">
+                                    {% for item in sold_listings %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <a href="{% url 'product' item.id %}" class="text-decoration-none text-dark">{{ item.name }}</a>
+                                                <small class="text-muted d-block">Listed on {{ item.created_at|date:"M d, Y" }}</small>
+                                            </div>
+                                            <span class="badge bg-success">Sold</span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">No sold items yet.</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
