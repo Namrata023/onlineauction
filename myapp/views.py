@@ -16,9 +16,11 @@ from django.views.decorators.csrf import csrf_exempt
 import random
 import requests
 import json
+import logging
 from .simple_bot import get_bot_response
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def simple_page_view(request):
@@ -122,30 +124,47 @@ def add_item(request):
             for img in request.FILES.getlist('images'):
                 ItemImage.objects.create(item=item, image=img)
             
-            # Notify all other users about new item
-            users_to_notify = CustomUser.objects.exclude(id=request.user.id)
+            # Notify all other users about new item (limit to prevent spam)
+            users_to_notify = CustomUser.objects.exclude(id=request.user.id)[:50]  # Limit to 50 users
+            notification_count = 0
+            email_count = 0
+            
             for user in users_to_notify:
-                # In-app notification
-                create_notification(
-                    user=user,
-                    message=f"New item '{item.name}' listed by {request.user.username}. Check it out!",
-                    notification_type='general',
-                    priority='low'
-                )
-                # Email notification
-                subject = "New Item Listed for Auction Check it Out!"
-                message = (
-                    f"Hello {user.username},\n\n"
-                    f"A new item '{item.name}' has just been listed for auction.\n"
-                    "Visit the site to place your bid now!"
-                )
-                send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+                try:
+                    # In-app notification
+                    create_notification(
+                        user=user,
+                        message=f"New item '{item.name}' listed by {request.user.username}. Check it out!",
+                        notification_type='general',
+                        priority='low'
+                    )
+                    notification_count += 1
+                    
+                    # Email notification (only if user has valid email)
+                    if user.email and '@' in user.email:
+                        subject = "New Item Listed for Auction Check it Out!"
+                        message = (
+                            f"Hello {user.username},\n\n"
+                            f"A new item '{item.name}' has just been listed for auction.\n"
+                            "Visit the site to place your bid now!"
+                        )
+                        send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
+                        email_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to notify user {user.username}: {e}")
+                    continue
+            
+            logger.info(f"Item '{item.name}' created: {notification_count} notifications, {email_count} emails sent")
            
             # Send confirmation email to the seller
-            subject = 'Item Added Successfully'
-            message = f"Hi {request.user.username},\n\nYour item '{item.name}' has been added successfully to the auction platform."
-            recipient_list = [request.user.email]
-            send_mail(subject, message, settings.EMAIL_HOST_USER, recipient_list)
+            try:
+                if request.user.email:
+                    subject = 'Item Added Successfully'
+                    message = f"Hi {request.user.username},\n\nYour item '{item.name}' has been added successfully to the auction platform."
+                    send_mail(subject, message, settings.EMAIL_HOST_USER, [request.user.email])
+            except Exception as e:
+                logger.warning(f"Failed to send confirmation email to seller {request.user.username}: {e}")
+                # Don't show error to user as item was created successfully
             
             return redirect('home') 
     else:
@@ -229,33 +248,45 @@ def product(request,id):
                 min_bid = max(min_bid, highest_bid.bid_price)
 
             if bid.bid_price > min_bid:
-                bid.item = item
-                bid.bidder = request.user
-                bid.bid_time = timezone.now()
-                bid.save()
-                
-                # Notify item owner about new bid
-                create_notification(
-                    user=item.owner,
-                    message=f"New bid of Rs.{bid.bid_price} placed on your item '{item.name}' by {request.user.username}.",
-                    notification_type='bid',
-                    priority='medium',
-                    related_item=item
-                )
-                
-                # Notify previous highest bidder about being outbid
-                if highest_bid and highest_bid.bidder != request.user:
-                    create_notification(
-                        user=highest_bid.bidder,
-                        message=f"You have been outbid on '{item.name}'. The new highest bid is Rs.{bid.bid_price}. Place a higher bid now!",
-                        notification_type='bid',
-                        priority='high',
-                        related_item=item
-                    )
-                
-                return redirect('product', id=id)
+                try:
+                    bid.item = item
+                    bid.bidder = request.user
+                    bid.bid_time = timezone.now()
+                    bid.save()
+                    
+                    # Notify item owner about new bid
+                    try:
+                        create_notification(
+                            user=item.owner,
+                            message=f"New bid of Rs.{bid.bid_price} placed on your item '{item.name}' by {request.user.username}.",
+                            notification_type='bid',
+                            priority='medium',
+                            related_item=item
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to notify item owner about bid: {e}")
+                    
+                    # Notify previous highest bidder about being outbid
+                    if highest_bid and highest_bid.bidder != request.user:
+                        try:
+                            create_notification(
+                                user=highest_bid.bidder,
+                                message=f"You have been outbid on '{item.name}'. The new highest bid is Rs.{bid.bid_price}. Place a higher bid now!",
+                                notification_type='bid',
+                                priority='high',
+                                related_item=item
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to notify previous bidder: {e}")
+                    
+                    messages.success(request, f"Your bid of Rs.{bid.bid_price} has been placed successfully!")
+                    return redirect('product', id=id)
+                    
+                except Exception as e:
+                    logger.error(f"Failed to save bid for item {item.id}: {e}")
+                    form.add_error(None, "Failed to place bid. Please try again.")
             else:
-                form.add_error('bid_price', f'Your bid must be higher than ${min_bid:.2f}.')
+                form.add_error('bid_price', f'Your bid must be higher than Rs.{min_bid:.2f}.')
     else:
         form = BidForm()
     return render(request, 'product.html', {
@@ -447,7 +478,8 @@ def initiate_payment(request, item_id):
         response = requests.post(
             f"{settings.KHALTI_BASE_URL}epayment/initiate/",
             json=payload,
-            headers=headers
+            headers=headers,
+            timeout=10
         )
         
         if response.status_code == 200:
@@ -461,11 +493,29 @@ def initiate_payment(request, item_id):
             )
             return redirect(data['payment_url'])
         else:
+            logger.error(f"Payment API returned status {response.status_code}: {response.text}")
             messages.error(request, "Payment initiation failed. Please try again.")
             return redirect('product', id=item_id)
             
+    except requests.exceptions.Timeout:
+        logger.error(f"Payment API timeout for item {item_id}")
+        messages.error(request, "Payment service is taking too long. Please try again.")
+        return redirect('product', id=item_id)
+    except requests.exceptions.ConnectionError:
+        logger.error(f"Payment API connection error for item {item_id}")
+        messages.error(request, "Cannot connect to payment service. Please try again later.")
+        return redirect('product', id=item_id)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Payment API request failed for item {item_id}: {e}")
+        messages.error(request, "Payment service temporarily unavailable.")
+        return redirect('product', id=item_id)
+    except ValueError as e:
+        logger.error(f"Invalid payment response data for item {item_id}: {e}")
+        messages.error(request, "Payment configuration error. Please contact support.")
+        return redirect('product', id=item_id)
     except Exception as e:
-        messages.error(request, "Payment service unavailable. Please try again later.")
+        logger.error(f"Unexpected payment error for item {item_id}: {e}")
+        messages.error(request, "Payment processing failed. Please try again.")
         return redirect('product', id=item_id)
 
 def payment_callback(request, item_id):

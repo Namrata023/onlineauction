@@ -296,3 +296,69 @@ class SearchAndFilterTests(TestCase):
         response = self.client.get(reverse('home'), {'q': 'nonexistent'})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No items found')
+
+class ErrorHandlingTests(TestCase):
+    """Test error handling in critical functions"""
+    
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        self.client.login(username='testuser', password='testpass123')
+    
+    def test_invalid_item_access(self):
+        """Test accessing non-existent item returns 404"""
+        response = self.client.get(reverse('product', args=[999]))
+        self.assertEqual(response.status_code, 404)
+    
+    def test_invalid_bid_amount(self):
+        """Test invalid bid amount handling"""
+        seller = User.objects.create_user(
+            username='seller',
+            email='seller@example.com',
+            password='testpass123',
+            is_seller=True
+        )
+        item = Item.objects.create(
+            owner=seller,
+            name='Test Item',
+            category='electronics',
+            description='Test Description',
+            minimum_price=100.0,
+            end_time=timezone.now() + timedelta(days=7)
+        )
+        
+        # Test negative bid
+        response = self.client.post(reverse('product', args=[item.id]), {
+            'bid_price': -50.0
+        })
+        self.assertEqual(Bid.objects.count(), 0)
+        
+        # Test zero bid
+        response = self.client.post(reverse('product', args=[item.id]), {
+            'bid_price': 0
+        })
+        self.assertEqual(Bid.objects.count(), 0)
+    
+    def test_unauthorized_item_edit(self):
+        """Test unauthorized user cannot edit item"""
+        other_user = User.objects.create_user(
+            username='other',
+            email='other@example.com',
+            password='testpass123',
+            is_seller=True
+        )
+        item = Item.objects.create(
+            owner=other_user,
+            name='Test Item',
+            category='electronics',
+            description='Test Description',
+            minimum_price=100.0,
+            end_time=timezone.now() + timedelta(days=7)
+        )
+        
+        response = self.client.get(reverse('edit_item', args=[item.id]))
+        self.assertEqual(response.status_code, 403)
