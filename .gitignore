@@ -17,6 +17,17 @@ media/
 staticfiles/
 static/
 
+# But keep the media directory structure (empty directories)
+!media/
+!media/images/
+!media/profile_pictures/
+!media/identification_images/
+media/*
+!media/.gitkeep
+!media/images/.gitkeep
+!media/profile_pictures/.gitkeep
+!media/identification_images/.gitkeep
+
 # Environment files
 .env
 .env.local
