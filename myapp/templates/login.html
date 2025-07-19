@@ -11,6 +11,13 @@
         <h2 class="text-center text-primary fw-bold mb-3 fs-4">Login to Online Auction</h2>
         <form method="post">
           {% csrf_token %}
+          
+          {% if error %}
+          <div class="alert alert-danger" role="alert">
+            {{ error }}
+          </div>
+          {% endif %}
+          
           <div class="mb-4">
             <label for="username" class="form-label fs-5">Username</label>
             <input type="text" id="username" name="username" class="form-control form-control-lg rounded-3" required>
