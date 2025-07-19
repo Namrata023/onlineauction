@@ -80,6 +80,9 @@ class UserCreationForm(BaseUserCreationForm):
             'placeholder': 'e.g., 98..',
             'type': 'tel',
         })
+        self.fields['identification_number'].required = True
+        self.fields['identification_number'].help_text = 'Identification number (citizenship, license, national ID, etc. a valid identification)'
+        self.fields['identification_image'].required = True
 
 
 class UserProfileForm(forms.ModelForm):
@@ -94,3 +97,6 @@ class UserProfileForm(forms.ModelForm):
             'placeholder': 'e.g., 98..',
             'type': 'tel',
         })
+        self.fields['identification_number'].required = True
+        self.fields['identification_number'].help_text = 'Identification number (citizenship, license, national ID, etc. that is a valid identification)'
+        self.fields['identification_image'].required = True
