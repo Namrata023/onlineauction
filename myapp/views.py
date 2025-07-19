@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import *
-from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, UserProfileForm, ItemImageFormSet
+from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, UserProfileForm, ItemImageFormSet, CommentForm
 from django.contrib.auth import authenticate, login,logout, get_user_model
 from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
@@ -217,7 +217,7 @@ def logout_view(request):
 def product(request,id):
     item = Item.objects.get(id=id)
     bids = item.bid_set.order_by('-bid_price')
-    
+    comments = item.comments.all()
     
     auction_expired = item.end_time and item.end_time < timezone.now()
     winner = None
@@ -232,67 +232,88 @@ def product(request,id):
         if is_winner:
             payment = Payment.objects.filter(item=item, user=request.user, payment_status="Completed").first()
     
-    if request.method == 'POST' and request.user.is_authenticated:
-        form = BidForm(request.POST)
-        if item.owner == request.user:
-            
-            form.add_error(None, "You cannot bid on your own item.")
-        elif auction_expired:
-            form.add_error(None, "Auction has ended. Bidding is closed.")
-        elif form.is_valid():
-            bid = form.save(commit=False)
-            highest_bid = bids.first()
-            min_bid = item.minimum_price
+    if request.method == 'POST':
+        # Handle bid form
+        if 'bid_submit' in request.POST and request.user.is_authenticated:
+            form = BidForm(request.POST)
+            comment_form = CommentForm()
+            if item.owner == request.user:
+                form.add_error(None, "You cannot bid on your own item.")
+            elif auction_expired:
+                form.add_error(None, "Auction has ended. Bidding is closed.")
+            elif form.is_valid():
+                bid = form.save(commit=False)
+                highest_bid = bids.first()
+                min_bid = item.minimum_price
 
-            if highest_bid:
-                min_bid = max(min_bid, highest_bid.bid_price)
+                if highest_bid:
+                    min_bid = max(min_bid, highest_bid.bid_price)
 
-            if bid.bid_price > min_bid:
-                try:
-                    bid.item = item
-                    bid.bidder = request.user
-                    bid.bid_time = timezone.now()
-                    bid.save()
-                    
-                    # Notify item owner about new bid
+                if bid.bid_price > min_bid:
                     try:
-                        create_notification(
-                            user=item.owner,
-                            message=f"New bid of Rs.{bid.bid_price} placed on your item '{item.name}' by {request.user.username}.",
-                            notification_type='bid',
-                            priority='medium',
-                            related_item=item
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to notify item owner about bid: {e}")
-                    
-                    # Notify previous highest bidder about being outbid
-                    if highest_bid and highest_bid.bidder != request.user:
+                        bid.item = item
+                        bid.bidder = request.user
+                        bid.bid_time = timezone.now()
+                        bid.save()
+                        
+                        # Notify item owner about new bid
                         try:
                             create_notification(
-                                user=highest_bid.bidder,
-                                message=f"You have been outbid on '{item.name}'. The new highest bid is Rs.{bid.bid_price}. Place a higher bid now!",
+                                user=item.owner,
+                                message=f"New bid of Rs.{bid.bid_price} placed on your item '{item.name}' by {request.user.username}.",
                                 notification_type='bid',
-                                priority='high',
+                                priority='medium',
                                 related_item=item
                             )
                         except Exception as e:
-                            logger.warning(f"Failed to notify previous bidder: {e}")
-                    
-                    messages.success(request, f"Your bid of Rs.{bid.bid_price} has been placed successfully!")
-                    return redirect('product', id=id)
-                    
-                except Exception as e:
-                    logger.error(f"Failed to save bid for item {item.id}: {e}")
-                    form.add_error(None, "Failed to place bid. Please try again.")
-            else:
-                form.add_error('bid_price', f'Your bid must be higher than Rs.{min_bid:.2f}.')
+                            logger.warning(f"Failed to notify item owner about bid: {e}")
+                        
+                        # Notify previous highest bidder about being outbid
+                        if highest_bid and highest_bid.bidder != request.user:
+                            try:
+                                create_notification(
+                                    user=highest_bid.bidder,
+                                    message=f"You have been outbid on '{item.name}'. The new highest bid is Rs.{bid.bid_price}. Place a higher bid now!",
+                                    notification_type='bid',
+                                    priority='high',
+                                    related_item=item
+                                )
+                            except Exception as e:
+                                logger.warning(f"Failed to notify previous bidder: {e}")
+                        
+                        messages.success(request, f"Your bid of Rs.{bid.bid_price} has been placed successfully!")
+                        return redirect('product', id=id)
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to save bid for item {item.id}: {e}")
+                        form.add_error(None, "Failed to place bid. Please try again.")
+                else:
+                    form.add_error('bid_price', f'Your bid must be higher than Rs.{min_bid:.2f}.')
+        
+        # Handle comment form
+        elif 'comment_submit' in request.POST and request.user.is_authenticated:
+            comment_form = CommentForm(request.POST)
+            form = BidForm()
+            if comment_form.is_valid():
+                comment = comment_form.save(commit=False)
+                comment.item = item
+                comment.user = request.user
+                comment.save()
+                messages.success(request, "Your comment has been added!")
+                return redirect('product', id=id)
+        else:
+            form = BidForm()
+            comment_form = CommentForm()
     else:
         form = BidForm()
+        comment_form = CommentForm()
+        
     return render(request, 'product.html', {
         'item': item, 
         'bids': bids, 
         'form': form,
+        'comment_form': comment_form,
+        'comments': comments,
         'auction_expired': auction_expired,
         'winner': winner,
         'is_winner': is_winner,

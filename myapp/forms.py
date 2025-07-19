@@ -1,5 +1,5 @@
 from django import forms
-from .models import Item, Bid, Feedback, CustomUser, ItemImage
+from .models import Item, Bid, Feedback, CustomUser, ItemImage, Comment
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -44,6 +44,22 @@ class FeedbackForm(forms.ModelForm):
         model = Feedback
         fields = ['name', 'email', 'message']
         
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Write your comment here...',
+                'maxlength': 500
+            })
+        }
+        labels = {
+            'content': 'Your Comment'
+        }
 
 class UserCreationForm(BaseUserCreationForm):
     class Meta:

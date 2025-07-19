@@ -133,7 +133,7 @@
                       {% endfor %}
                     </div>
                   {% endif %}
-                  <button type="submit" class="btn btn-success mt-2">Bid</button>
+                  <button type="submit" name="bid_submit" class="btn btn-success mt-2">Bid</button>
                 </form>
               </div>
             </div>
@@ -157,6 +157,62 @@
         {% else %}
           <p class="text-muted">No bids yet. Be the first to bid!</p>
         {% endif %}
+      </div>
+
+      <!-- Comments Section -->
+      <div class="mt-4">
+        <h5>Comments</h5>
+        
+        <!-- Add Comment Form -->
+        {% if user.is_authenticated %}
+          <div class="card mt-3">
+            <div class="card-body">
+              <h6 class="card-title">Add a Comment</h6>
+              <form method="post">
+                {% csrf_token %}
+                <div class="mb-2">
+                  {{ comment_form.content.label_tag }}
+                  {{ comment_form.content }}
+                  {% if comment_form.content.errors %}
+                    <div class="text-danger">{{ comment_form.content.errors }}</div>
+                  {% endif %}
+                </div>
+                <small class="text-muted">Maximum 500 characters</small><br>
+                <button type="submit" name="comment_submit" class="btn btn-primary btn-sm mt-2">
+                  <i class="fas fa-comment"></i> Add Comment
+                </button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <p class="text-muted"><a href="{% url 'login_view' %}">Login</a> to add a comment.</p>
+        {% endif %}
+
+        <!-- Comments List -->
+        <div class="mt-3">
+          {% if comments %}
+            {% for comment in comments %}
+              <div class="card mb-2">
+                <div class="card-body py-2">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">
+                        <strong>{{ comment.user.username }}</strong>
+                        {% if comment.user == item.owner %}
+                          <span class="badge bg-secondary badge-sm">Seller</span>
+                        {% endif %}
+                      </h6>
+                      <p class="mb-1">{{ comment.content }}</p>
+                      <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted">No comments yet. Be the first to comment!</p>
+          {% endif %}
+        </div>
       </div>
 
       <!-- Item Actions -->
