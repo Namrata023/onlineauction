@@ -28,6 +28,27 @@
         max-width: 500px;
       }
 
+      .search-box {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      @media (max-width: 768px) {
+        .search-box .d-flex {
+          flex-direction: column;
+          align-items: stretch !important;
+        }
+        
+        .search-box input {
+          max-width: 100%;
+          margin-bottom: 10px;
+        }
+        
+        .search-box .gap-2 > input {
+          width: 100% !important;
+        }
+      }
+
       .card-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -178,9 +199,20 @@
         <h1 class="display-5 fw-bold">Welcome to the Official Online Auction</h1>
         <p class="lead">Browse and bid on surplus government items,personal items, furniture, electronics and more.</p>
         
-        <form method="get" action="{% url 'home' %}" class="d-flex justify-content-center mt-4 search-box">
-          <input type="text" name="q" placeholder="Search items..." class="form-control me-2" value="{{ query|default:'' }}">
-          <button type="submit" class="btn btn-light text-primary fw-semibold">Search</button>
+        <form method="get" action="{% url 'home' %}" class="search-box">
+          <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4">
+            <!-- Search Input -->
+            <input type="text" name="q" placeholder="Search items..." class="form-control me-2" value="{{ query|default:'' }}" style="max-width: 300px;">
+            
+            <!-- Price Range Inputs -->
+            <div class="d-flex align-items-center gap-2">
+              <input type="number" name="min_price" placeholder="Min price" class="form-control" value="{{ min_price|default:'' }}" style="width: 110px;" min="0" step="0.01">
+              <span class="text-white">-</span>
+              <input type="number" name="max_price" placeholder="Max price" class="form-control" value="{{ max_price|default:'' }}" style="width: 110px;" min="0" step="0.01">
+            </div>
+            
+            <button type="submit" class="btn btn-light text-primary fw-semibold">Search</button>
+          </div>
         </form>
 
         {% if no_results %}

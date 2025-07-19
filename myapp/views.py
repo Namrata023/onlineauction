@@ -28,14 +28,36 @@ def simple_page_view(request):
 
 def home(request):
     query = request.GET.get('q') 
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    
+    # Start with all items
+    items = Item.objects.all()
+    
+    # Apply search query filter
     if query:
-        items = Item.objects.filter(
+        items = items.filter(
             Q(name__icontains=query) | 
             Q(description__icontains=query)
-        ).distinct()
-    else:
-        items = Item.objects.all()
-        query = ''
+        )
+    
+    # Apply price range filters
+    if min_price:
+        try:
+            min_price_val = float(min_price)
+            items = items.filter(minimum_price__gte=min_price_val)
+        except ValueError:
+            pass
+    
+    if max_price:
+        try:
+            max_price_val = float(max_price)
+            items = items.filter(minimum_price__lte=max_price_val)
+        except ValueError:
+            pass
+    
+    items = items.distinct()
+    query = query or ''
     paginator = Paginator(items, 12)  # Show 12 items per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -48,7 +70,9 @@ def home(request):
     no_results = query and not items.exists()
     return render(request, 'base.html', {
         'items': page_obj,
-        'query': query or '',
+        'query': query,
+        'min_price': min_price or '',
+        'max_price': max_price or '',
         'no_results': no_results,
         'popular_items': popular_items,
         'recommended_items': recommended_items,
