@@ -568,16 +568,9 @@ def payment_callback(request, item_id):
                     
                     create_notification(
                         user=item.owner,
-                        message=f"💰 Payment Received for '{item.name}'\n\n"
-                                f"🎉 Great news! {buyer_full_name} has successfully completed the payment for your auction item.\n\n"
-                                f"📋 BUYER CONTACT DETAILS:\n"
-                                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                                f"👤 Full Name: {buyer_full_name}\n"
-                                f"📧 Email: {buyer_email}\n"
-                                f"📱 Phone: {buyer_phone}\n"
-                                f"🏠 Address: {buyer_address}\n"
-                                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                                f"✅ Next Steps: Please contact the buyer to coordinate delivery and finalize the transaction.",
+                        message=f"Payment for your item '{item.name}' has been successfully completed by {buyer_full_name}. "
+                                f"Please contact the buyer to arrange delivery using the following details: Name: {buyer_full_name}, "
+                                f"Email: {buyer_email}, Phone: {buyer_phone}, Address: {buyer_address}.",
                         notification_type='payment_received',
                         priority='high',
                         related_item=item
@@ -585,44 +578,12 @@ def payment_callback(request, item_id):
                     
                     # Email the seller
                     send_mail(
-                        subject="💰 Payment Received - Action Required",
-                        message=f"""
-🎉 CONGRATULATIONS! Payment Received for Your Auction Item
-
-Dear {item.owner.username},
-
-Great news! Your auction item has been successfully sold and payment has been completed.
-
-═══════════════════════════════════════════════════════════════════════════════
-
-📦 ITEM DETAILS:
-   • Item Name: {item.name}
-   • Sale Amount: Rs.{payment.amount if payment else 'N/A'}
-   • Transaction Date: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}
-
-═══════════════════════════════════════════════════════════════════════════════
-
-👤 BUYER CONTACT INFORMATION:
-   
-   📝 Full Name:     {buyer_full_name}
-   📧 Email:         {buyer_email}
-   📱 Phone:         {buyer_phone}
-   🏠 Address:       {buyer_address}
-
-═══════════════════════════════════════════════════════════════════════════════
-
-✅ NEXT STEPS:
-   1. Contact the buyer using the information provided above
-   2. Coordinate delivery arrangements
-   3. Finalize the transaction
-   4. Ensure safe handover of the item
-
-Thank you for using our auction platform!
-
-Best regards,
-OnlineAuction Team
-═══════════════════════════════════════════════════════════════════════════════
-                        """.strip(),
+                        subject="Payment Received for Your Auction Item",
+                        message=f"Dear {item.owner.username},\n\n"
+                                f"Payment for your auction item '{item.name}' has been successfully completed by {buyer_full_name}. "
+                                f"Please contact the buyer to arrange delivery using the following contact details: Name: {buyer_full_name}, "
+                                f"Email: {buyer_email}, Phone: {buyer_phone}, Address: {buyer_address}.\n\n"
+                                f"Best regards,\nOnlineAuction Team",
                         from_email=settings.EMAIL_HOST_USER,
                         recipient_list=[item.owner.email],
                         fail_silently=True
