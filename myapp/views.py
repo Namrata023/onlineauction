@@ -230,22 +230,61 @@ def register(request):
     if request.method == "POST":
         form = UserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.is_active = False  # Deactivate until OTP is verified
             user.save()
 
-            login(request, user)
+            # Generate OTP
+            import random
+            otp = str(random.randint(100000, 999999))
+            from .models import PasswordResetOTP
+            PasswordResetOTP.objects.filter(user=user).delete()  # Remove any old OTPs
+            PasswordResetOTP.objects.create(user=user, otp=otp)
 
-            subject = "Welcome to Auction"
-            message = "Thank you for registering! We are glad to have you."
+            # Send OTP to user's email
+            subject = "Your Registration OTP"
+            message = f"Hi {user.username}, your OTP for registration is: {otp}"
             from_email = settings.EMAIL_HOST_USER
             to_email = [user.email]
-
             send_mail(subject, message, from_email, to_email)
-            return redirect('login_view')
-    
-        # form = UserCreationForm()
+
+            # Store username in session for OTP verification
+            request.session['pending_registration_user'] = user.username
+
+            return redirect('verify_registration_otp')
     return render(request, 'register.html', {'form':form})
 
+def verify_registration_otp(request):
+    username = request.session.get('pending_registration_user')
+    if not username:
+        messages.error(request, "Session expired. Please register again.")
+        return redirect('register')
+
+    from .models import PasswordResetOTP
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        messages.error(request, "User not found. Please register again.")
+        return redirect('register')
+
+    otp_obj = PasswordResetOTP.objects.filter(user=user).first()
+    if not otp_obj:
+        messages.error(request, "No OTP found. Please register again.")
+        return redirect('register')
+
+    if request.method == 'POST':
+        entered_otp = request.POST.get('otp')
+        if entered_otp == otp_obj.otp and not otp_obj.is_expired():
+            user.is_active = True
+            user.save()
+            otp_obj.delete()
+            del request.session['pending_registration_user']
+            messages.success(request, "Registration successful! You can now log in.")
+            return redirect('login_view')
+        else:
+            messages.error(request, "Invalid or expired OTP.")
+    return render(request, 'verify_registration_otp.html', {'username': username})
 def logout_view(request):
     logout(request)
     return redirect('home')

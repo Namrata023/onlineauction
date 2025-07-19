@@ -10,6 +10,7 @@ urlpatterns = [
     path('add_item/', add_item, name='add_item'),
     path('login_view/', login_view, name='login_view'),
     path('register/', register, name='register'),
+    path('verify-registration-otp/', verify_registration_otp, name='verify_registration_otp'),
     path('logout_view/', logout_view, name='logout_view'),
     path('product/<int:id>/', product, name='product'),
     path('delete_item/<int:id>/', delete_item, name='delete_item'),
