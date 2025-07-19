@@ -146,6 +146,7 @@ class Notification(models.Model):
         ('auction_lost', 'Auction Lost'),
         ('item_sold', 'Item Sold'),
         ('payment', 'Payment'),
+        ('payment_received', 'Payment Received'),
         ('general', 'General'),
     ]
     

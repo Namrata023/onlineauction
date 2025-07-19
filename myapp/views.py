@@ -561,9 +561,19 @@ def payment_callback(request, item_id):
                     item.save()
                     
                     # Notify owner that buyer has paid ✅
+                    buyer_full_name = request.user.get_full_name() or request.user.username
+                    buyer_address = getattr(request.user, 'address', 'Not provided')
+                    buyer_phone = getattr(request.user, 'phone_number', 'Not provided')
+                    buyer_email = request.user.email or 'Not provided'
+                    
                     create_notification(
                         user=item.owner,
-                        message=f"💰 {request.user.username} has paid for your item '{item.name}'. Please arrange delivery.",
+                        message=f"💰 {request.user.username} has paid for your item '{item.name}'. Please arrange delivery.\n\n"
+                                f"Buyer Contact Information:\n"
+                                f"Name: {buyer_full_name}\n"
+                                f"Email: {buyer_email}\n"
+                                f"Phone: {buyer_phone}\n"
+                                f"Address: {buyer_address}",
                         notification_type='payment_received',
                         priority='high',
                         related_item=item
@@ -572,7 +582,13 @@ def payment_callback(request, item_id):
                     # Email the seller
                     send_mail(
                         subject="💰 Payment Received for Your Auction Item",
-                        message=f"Good news! {request.user.username} has completed the payment for your item '{item.name}'.\n\nPlease coordinate delivery.",
+                        message=f"Good news! {request.user.username} has completed the payment for your item '{item.name}'.\n\n"
+                                f"Buyer Contact Information:\n"
+                                f"Name: {buyer_full_name}\n"
+                                f"Email: {buyer_email}\n"
+                                f"Phone: {buyer_phone}\n"
+                                f"Address: {buyer_address}\n\n"
+                                f"Please coordinate delivery with the buyer.",
                         from_email=settings.EMAIL_HOST_USER,
                         recipient_list=[item.owner.email],
                         fail_silently=True
