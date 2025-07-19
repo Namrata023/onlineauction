@@ -13,6 +13,13 @@ class ItemForm(forms.ModelForm):
         ('home_garden', 'Home & Garden'),
         ('collectibles', 'Collectibles & Art'),
         ('vehicles', 'Vehicles & Parts'),
+        ('health_beauty', 'Health & Beauty'),
+        ('jewelry', 'Jewelry & Accessories'),
+        ('music_movies', 'Music & Movies'),
+        ('pet_supplies', 'Pet Supplies'),
+        ('tools_home_improvement', 'Tools & Home Improvement'),
+        ('baby_products', 'Baby Products'),
+        ('other', 'Other'),
     ]
     
     category = forms.ChoiceField(
