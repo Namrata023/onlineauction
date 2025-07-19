@@ -6,7 +6,7 @@ from .models import *
 from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, UserProfileForm, ItemImageFormSet, CommentForm
 from django.contrib.auth import authenticate, login,logout, get_user_model
 from collections import namedtuple
-from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
+from django.http import HttpResponseForbidden, HttpResponse, JsonResponse, Http404
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
@@ -61,7 +61,7 @@ def home(request):
     if category and category != 'all':
         items = items.filter(category=category)
     
-    items = items.distinct()
+    items = items.distinct().order_by('-created_at')  # Order by creation date, newest first
     query = query or ''
     paginator = Paginator(items, 12)  # Show 12 items per page
     page_number = request.GET.get('page')
@@ -251,7 +251,11 @@ def logout_view(request):
     return redirect('home')
 
 def product(request,id):
-    item = Item.objects.get(id=id)
+    try:
+        item = Item.objects.get(id=id)
+    except Item.DoesNotExist:
+        raise Http404("Item does not exist")
+    
     bids = item.bid_set.order_by('-bid_price')
     comments = item.comments.all()
     
@@ -270,7 +274,7 @@ def product(request,id):
     
     if request.method == 'POST':
         # Handle bid form
-        if 'bid_submit' in request.POST and request.user.is_authenticated:
+        if 'bid_price' in request.POST and request.user.is_authenticated:
             form = BidForm(request.POST)
             comment_form = CommentForm()
             if item.owner == request.user:
@@ -327,7 +331,7 @@ def product(request,id):
                     form.add_error('bid_price', f'Your bid must be higher than Rs.{min_bid:.2f}.')
         
         # Handle comment form
-        elif 'comment_submit' in request.POST and request.user.is_authenticated:
+        elif 'content' in request.POST and request.user.is_authenticated:
             comment_form = CommentForm(request.POST)
             form = BidForm()
             if comment_form.is_valid():
@@ -359,10 +363,14 @@ def product(request,id):
     })
 @login_required
 def edit_item(request, id):
-    item = Item.objects.get(id=id, owner=request.user)
+    try:
+        item = Item.objects.get(id=id)
+    except Item.DoesNotExist:
+        raise Http404("Item does not exist")
 
     if item.owner != request.user:
-        return redirect('home')
+        return HttpResponseForbidden("You don't have permission to edit this item.")
+    
     if item.bid_set.exists():
         messages.error(request, "You cannot edit this item because bidding has already started.")
         return redirect('product', id=id)
