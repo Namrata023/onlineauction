@@ -29,7 +29,7 @@
       }
 
       .search-box {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
       }
 
@@ -39,8 +39,10 @@
           align-items: stretch !important;
         }
         
-        .search-box input {
+        .search-box input,
+        .search-box select {
           max-width: 100%;
+          width: 100% !important;
           margin-bottom: 10px;
         }
         
@@ -66,6 +68,35 @@
 
       .card:hover {
         transform: scale(1.02);
+      }
+
+      /* Category Buttons Styling */
+      .category-buttons .btn {
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 500;
+      }
+
+      .category-buttons .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .category-buttons .btn i {
+        margin-right: 0.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .category-buttons .btn {
+          font-size: 0.8rem;
+          padding: 0.4rem 0.8rem;
+        }
+        
+        .category-buttons .btn i {
+          margin-right: 0.3rem;
+        }
       }
       .card-body {
   border-top: 1px solid #f1f1f1;
@@ -202,7 +233,15 @@
         <form method="get" action="{% url 'home' %}" class="search-box">
           <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mt-4">
             <!-- Search Input -->
-            <input type="text" name="q" placeholder="Search items..." class="form-control me-2" value="{{ query|default:'' }}" style="max-width: 300px;">
+            <input type="text" name="q" placeholder="Search items..." class="form-control me-2" value="{{ query|default:'' }}" style="max-width: 250px;">
+            
+            <!-- Category Filter -->
+            <select name="category" class="form-select" style="width: 150px;">
+              <option value="all" {% if not category or category == 'all' %}selected{% endif %}>All Categories</option>
+              {% for value, label in category_choices %}
+                <option value="{{ value }}" {% if category == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
             
             <!-- Price Range Inputs -->
             <div class="d-flex align-items-center gap-2">
@@ -220,6 +259,58 @@
             No items found for "<strong>{{ query }}</strong>". Please try another search.
           </div>
         {% endif %}
+      </div>
+    </section>
+
+    <!-- Category Filter Buttons -->
+    <section class="container my-5">
+      <div class="text-center mb-4">
+        <h3 class="mb-4 text-primary">
+          <i class="fas fa-layer-group"></i> Browse by Category
+        </h3>
+        <div class="d-flex flex-wrap justify-content-center gap-2 category-buttons">
+          <!-- All Categories Button -->
+          <a href="{% url 'home' %}" class="btn {% if not category or category == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %} mb-2">
+            <i class="fas fa-th-large"></i> All Categories
+          </a>
+          
+          {% for value, label in category_choices %}
+            <a href="{% url 'home' %}?category={{ value }}" class="btn {% if category == value %}btn-primary{% else %}btn-outline-primary{% endif %} mb-2">
+              {% if value == 'electronics' %}
+                <i class="fas fa-laptop"></i>
+              {% elif value == 'clothing' %}
+                <i class="fas fa-tshirt"></i>
+              {% elif value == 'home_garden' %}
+                <i class="fas fa-home"></i>
+              {% elif value == 'collectibles' %}
+                <i class="fas fa-gem"></i>
+              {% elif value == 'vehicles' %}
+                <i class="fas fa-car"></i>
+              {% elif value == 'books' %}
+                <i class="fas fa-book"></i>
+              {% elif value == 'sports' %}
+                <i class="fas fa-football-ball"></i>
+              {% elif value == 'toys' %}
+                <i class="fas fa-puzzle-piece"></i>
+              {% elif value == 'health_beauty' %}
+                <i class="fas fa-spa"></i>
+              {% elif value == 'jewelry' %}
+                <i class="fas fa-ring"></i>
+              {% elif value == 'music_movies' %}
+                <i class="fas fa-music"></i>
+              {% elif value == 'pet_supplies' %}
+                <i class="fas fa-paw"></i>
+              {% elif value == 'tools_home_improvement' %}
+                <i class="fas fa-tools"></i>
+              {% elif value == 'baby_products' %}
+                <i class="fas fa-baby"></i>
+              {% else %}
+                <i class="fas fa-tag"></i>
+              {% endif %}
+              {{ label }}
+            </a>
+          {% endfor %}
+        </div>
       </div>
     </section>
 

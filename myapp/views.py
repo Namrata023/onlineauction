@@ -30,6 +30,7 @@ def home(request):
     query = request.GET.get('q') 
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
+    category = request.GET.get('category')
     
     # Start with all items
     items = Item.objects.all()
@@ -56,6 +57,10 @@ def home(request):
         except ValueError:
             pass
     
+    # Apply category filter
+    if category and category != 'all':
+        items = items.filter(category=category)
+    
     items = items.distinct()
     query = query or ''
     paginator = Paginator(items, 12)  # Show 12 items per page
@@ -68,11 +73,18 @@ def home(request):
     recent_items = get_recently_added_items(6)
 
     no_results = query and not items.exists()
+    
+    # Get category choices for the filter dropdown
+    from .models import Item as ItemModel
+    category_choices = ItemModel.CATEGORY_CHOICES
+    
     return render(request, 'base.html', {
         'items': page_obj,
         'query': query,
         'min_price': min_price or '',
         'max_price': max_price or '',
+        'category': category or '',
+        'category_choices': category_choices,
         'no_results': no_results,
         'popular_items': popular_items,
         'recommended_items': recommended_items,
