@@ -142,7 +142,7 @@ def add_sample_data():
             'description': 'Authentic Tibetan singing bowl for meditation',
             'tags': 'meditation,tibetan,bowl,spiritual,healing',
             'minimum_price': 80.00,
-            'image_url': 'https://images.unsplash.com/photo-1593951825752-887c4ac4741d?w=600&h=400&fit=crop'
+            'image_url': 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop'
         },
         {
             'name': 'Electric Guitar',
@@ -182,7 +182,7 @@ def add_sample_data():
             'description': 'Premium yoga mat with accessories',
             'tags': 'yoga,fitness,exercise,mat,wellness',
             'minimum_price': 45.00,
-            'image_url': 'https://images.unsplash.com/photo-1506629905607-c3d8bb2567cd?w=600&h=400&fit=crop'
+            'image_url': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop'
         },
         {
             'name': 'Cooking Pot Set',
@@ -190,7 +190,7 @@ def add_sample_data():
             'description': 'Stainless steel cooking pot set for kitchen',
             'tags': 'cooking,kitchen,pots,steel,utensils',
             'minimum_price': 65.00,
-            'image_url': 'https://images.unsplash.com/photo-1556909114-b7d6c486b7be?w=600&h=400&fit=crop'
+            'image_url': 'https://images.unsplash.com/photo-1584269600519-112e9ac5671c?w=600&h=400&fit=crop'
         }
     ]
     
