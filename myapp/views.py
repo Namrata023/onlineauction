@@ -471,7 +471,6 @@ def initiate_payment(request, item_id):
 def payment_callback(request, item_id):
     """Handle payment callback from Khalti"""
     item = get_object_or_404(Item, id=item_id)
-    
     pidx = request.GET.get('pidx')
     status = request.GET.get('status')
     transaction_id = request.GET.get('transaction_id')
@@ -510,6 +509,24 @@ def payment_callback(request, item_id):
                     # Mark item as sold
                     item.is_sold = True
                     item.save()
+                    
+                    # Notify owner that buyer has paid ✅
+                    create_notification(
+                        user=item.owner,
+                        message=f"💰 {request.user.username} has paid for your item '{item.name}'. Please arrange delivery.",
+                        notification_type='payment_received',
+                        priority='high',
+                        related_item=item
+                    )
+                    
+                    # Email the seller
+                    send_mail(
+                        subject="💰 Payment Received for Your Auction Item",
+                        message=f"Good news! {request.user.username} has completed the payment for your item '{item.name}'.\n\nPlease coordinate delivery.",
+                        from_email=settings.EMAIL_HOST_USER,
+                        recipient_list=[item.owner.email],
+                        fail_silently=True
+                    )
                     
                     messages.success(request, "Payment successful! You have successfully purchased this item.")
                     return redirect('product', id=item_id)

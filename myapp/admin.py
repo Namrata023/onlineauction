@@ -7,5 +7,7 @@ admin.site.register(Bid)
 admin.site.register(Feedback)
 admin.site.register(ItemImage)
 admin.site.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ['user', 'item', 'amount', 'payment_status', 'created_at']
 admin.site.register(Notification)
 admin.site.register(PasswordResetOTP)

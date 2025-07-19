@@ -25,22 +25,31 @@ def get_fallback_response(user_input):
     
     elif any(word in user_input_lower for word in ['categories', 'what can i buy']):
         return "We have various categories including Electronics, Antiques, Vehicles, and more. Browse our homepage to see all available items."
+    
     elif any(word in user_input_lower for word in ['auction', 'what is auction', 'how does it work']):
         return "An auction is a public sale where items are sold to the highest bidder. You can place bids on items you are interested in, and the highest bid at the end of the auction wins."
+   
     elif any(word in user_input_lower for word in ['time remaining', 'how long', 'end time']):
         return "You can check the time remaining for each auction item on its product page. The auction ends when the timer reaches zero."
+   
     elif any(word in user_input_lower for word in ['profile', 'my account', 'edit profile']):
         return "To view or edit your profile, go to the 'Profile' section in your account. Here you can update your personal information, view your bids, and manage your items."
+   
     elif any(word in user_input_lower for word in ['notifications', 'alerts', 'updates']):
         return "You can view your notifications in the 'Notifications' section of your account. This includes updates on your bids, auction results, and other important alerts."
+   
     elif any(word in user_input_lower for word in ['privacy', 'terms', 'policy']):
         return "You can find our Privacy Policy and Terms of Service in the footer of our website. They outline how we handle your data and the rules for using our platform."
+   
     elif any(word in user_input_lower for word in ['feedback', 'suggestions', 'comments']):
         return "We value your feedback! You can send us your suggestions or comments through the contact form on our website or email us directly at auction.online07@gmail.com."
+   
     elif any(word in user_input_lower for word in ['login', 'sign in', 'access account']):
         return "To log in, click the 'Login' button and enter your username and password. If you don't have an account, please register first."
+   
     elif any(word in user_input_lower for word in ['outbid', 'notify outbid', 'outbid notification']):
         return "If you are outbid on an item, you will receive a notification in your account. You can then choose to place a new bid if you wish."
+   
     else:
         return "I'm here to help with questions about AuctionNepal! You can ask me about bidding, registering, selling items, payments, or general auction information."
 
