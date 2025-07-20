@@ -1,5 +1,5 @@
 from django import forms
-from .models import Item, Bid, Feedback, CustomUser, ItemImage, Comment, Message
+from .models import Item, Bid, Feedback, CustomUser, ItemImage, Comment
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -100,19 +100,3 @@ class UserProfileForm(forms.ModelForm):
         self.fields['identification_number'].required = True
         self.fields['identification_number'].help_text = 'Identification number (citizenship, license, national ID, etc. that is a valid identification)'
         self.fields['identification_image'].required = True
-
-class MessageForm(forms.ModelForm):
-    class Meta:
-        model = Message
-        fields = ['content']
-        widgets = {
-            'content': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'placeholder': 'Type your message here...',
-                'maxlength': 1000
-            })
-        }
-        labels = {
-            'content': 'Message'
-        }

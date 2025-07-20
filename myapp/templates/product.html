@@ -100,21 +100,6 @@
                       <a href="{% url 'initiate_payment' item.id %}" class="btn btn-primary mt-2">Proceed to Payment</a>
                     </div>
                   {% endif %}
-                  
-                  <!-- Messaging button for winner -->
-                  <div class="mt-2">
-                    <a href="{% url 'item_messages' item.id %}" class="btn btn-outline-info btn-sm">
-                      <i class="fas fa-comments"></i> Message Seller
-                    </a>
-                  </div>
-                  
-                {% elif user == item.owner %}
-                  <!-- Messaging button for seller -->
-                  <div class="mt-2">
-                    <a href="{% url 'item_messages' item.id %}" class="btn btn-outline-info btn-sm">
-                      <i class="fas fa-comments"></i> Message Winner
-                    </a>
-                  </div>
                 {% endif %}
               </div>
             {% else %}

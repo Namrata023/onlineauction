@@ -33,10 +33,9 @@
                     <p class="text-muted small">{{ profile.email }}</p>
                 </div>
                 <ul class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action active" data-bs-toggle="tab" href="#overview">📊 Overview</a>
+                    <a class="list-group-item list-group-item-action active" data-bs-toggle="tab" href="#overview">� Overview</a>
                     <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#bidding">🏷️ Bidding</a>
                     <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#selling">🛒 Selling</a>
-                    <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#messages">💬 Messages</a>
                     <a class="list-group-item list-group-item-action" data-bs-toggle="tab" href="#settings">⚙️ Settings</a>
                 </ul>
             </div>
@@ -211,24 +210,6 @@
                             {% else %}
                                 <p class="text-muted">No sold items yet.</p>
                             {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Messages -->
-                <div class="tab-pane fade" id="messages">
-                    <div class="card shadow-sm rounded-4 mb-4">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="fw-bold mb-0">Messages</h5>
-                                <a href="{% url 'messages_list' %}" class="btn btn-primary btn-sm">View All Messages</a>
-                            </div>
-                            <p class="text-muted">Quick access to your conversations with buyers and sellers.</p>
-                            <div class="text-center">
-                                <a href="{% url 'messages_list' %}" class="btn btn-outline-primary">
-                                    <i class="fas fa-comments"></i> Go to Messages
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>

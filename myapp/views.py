@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import *
-from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, UserProfileForm, ItemImageFormSet, CommentForm, MessageForm
+from .forms import ItemForm, BidForm, FeedbackForm, UserCreationForm, UserProfileForm, ItemImageFormSet, CommentForm
 from django.contrib.auth import authenticate, login,logout, get_user_model
 from collections import namedtuple
 from django.http import HttpResponseForbidden, HttpResponse, JsonResponse, Http404
@@ -1014,107 +1014,4 @@ def check_expired_auctions(request):
         messages.info(request, "No expired auctions to process.")
     
     return redirect('home')
-
-@login_required
-def item_messages(request, item_id):
-    """View and send messages for a specific item"""
-    item = get_object_or_404(Item, id=item_id)
-    
-    # Check if user is eligible to message (either seller or winner of the auction)
-    winning_bid = item.bid_set.order_by('-bid_price').first()
-    is_seller = item.owner == request.user
-    is_winner = winning_bid and winning_bid.bidder == request.user
-    
-    if not (is_seller or is_winner):
-        messages.error(request, "You are not authorized to view messages for this item.")
-        return redirect('product', id=item_id)
-    
-    # Determine the other participant
-    if is_seller:
-        other_user = winning_bid.bidder if winning_bid else None
-    else:
-        other_user = item.owner
-    
-    if not other_user:
-        messages.info(request, "No messages available - auction has no winner yet.")
-        return redirect('product', id=item_id)
-    
-    # Get all messages for this item between these two users
-    item_messages = Message.objects.filter(
-        item=item,
-        sender__in=[request.user, other_user],
-        receiver__in=[request.user, other_user]
-    ).order_by('created_at')
-    
-    # Mark messages as read
-    Message.objects.filter(
-        item=item,
-        receiver=request.user,
-        is_read=False
-    ).update(is_read=True)
-    
-    # Handle message sending
-    if request.method == 'POST':
-        form = MessageForm(request.POST)
-        if form.is_valid():
-            message = form.save(commit=False)
-            message.item = item
-            message.sender = request.user
-            message.receiver = other_user
-            message.save()
-            messages.success(request, "Message sent successfully!")
-            return redirect('item_messages', item_id=item_id)
-    else:
-        form = MessageForm()
-    
-    return render(request, 'item_messages.html', {
-        'item': item,
-        'messages': item_messages,
-        'form': form,
-        'other_user': other_user,
-        'is_seller': is_seller,
-    })
-
-@login_required
-def messages_list(request):
-    """View all message conversations for the current user"""
-    # Get all items where user has messages (either as sender or receiver)
-    user_messages = Message.objects.filter(
-        Q(sender=request.user) | Q(receiver=request.user)
-    ).select_related('item', 'sender', 'receiver').order_by('-created_at')
-    
-    # Group messages by item
-    items_with_messages = {}
-    for message in user_messages:
-        if message.item.id not in items_with_messages:
-            # Determine the other participant
-            other_user = message.receiver if message.sender == request.user else message.sender
-            
-            # Check if user is eligible for this conversation
-            winning_bid = message.item.bid_set.order_by('-bid_price').first()
-            is_seller = message.item.owner == request.user
-            is_winner = winning_bid and winning_bid.bidder == request.user
-            
-            if is_seller or is_winner:
-                # Count unread messages
-                unread_count = Message.objects.filter(
-                    item=message.item,
-                    receiver=request.user,
-                    is_read=False
-                ).count()
-                
-                items_with_messages[message.item.id] = {
-                    'item': message.item,
-                    'other_user': other_user,
-                    'last_message': message,
-                    'unread_count': unread_count,
-                    'is_seller': is_seller,
-                }
-    
-    conversations = list(items_with_messages.values())
-    conversations.sort(key=lambda x: x['last_message'].created_at, reverse=True)
-    
-    return render(request, 'messages_list.html', {
-        'conversations': conversations,
-    })
 
