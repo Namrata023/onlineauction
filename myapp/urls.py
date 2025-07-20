@@ -31,5 +31,7 @@ urlpatterns = [
     path('get-time-remaining/<int:item_id>/', get_time_remaining, name='get_time_remaining'),
     path('check-expired-auctions/', check_expired_auctions, name='check_expired_auctions'),
     path("chatbot/", chatbot_view, name="chatbot"),
+    path('messages/', messages_list, name='messages_list'),
+    path('messages/item/<int:item_id>/', item_messages, name='item_messages'),
 
 ]

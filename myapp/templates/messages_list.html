@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-comments"></i> My Messages
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if conversations %}
+                        <div class="list-group">
+                            {% for conversation in conversations %}
+                                <a href="{% url 'item_messages' conversation.item.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                <strong>{{ conversation.item.name }}</strong>
+                                                {% if conversation.unread_count > 0 %}
+                                                    <span class="badge bg-danger rounded-pill">{{ conversation.unread_count }}</span>
+                                                {% endif %}
+                                            </h6>
+                                            <p class="mb-1 text-muted">
+                                                {% if conversation.is_seller %}
+                                                    Conversation with buyer: <strong>{{ conversation.other_user.username }}</strong>
+                                                {% else %}
+                                                    Conversation with seller: <strong>{{ conversation.other_user.username }}</strong>
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">
+                                                Last message: {{ conversation.last_message.content|truncatewords:10 }}
+                                            </small>
+                                        </div>
+                                        <small class="text-muted">
+                                            {{ conversation.last_message.created_at|timesince }} ago
+                                        </small>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No messages yet</h5>
+                            <p class="text-muted">Messages will appear here when you win auctions or sell items.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
