@@ -119,7 +119,7 @@ def contact(request):
             feedback = form.save()
 
             # Send confirmation email to user
-            subject = "Thank you for your feedback"
+            subject = "Thank you for your feedback" 
             message = (
                 f"Hi {feedback.name},\n\n"
                 "Thank you for your valuable feedback. We appreciate you taking the time to help us improve.\n\n"
